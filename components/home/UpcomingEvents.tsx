@@ -24,7 +24,7 @@ const events = [
 
 export default function UpcomingEvents() {
   return (
-    <section style={{ padding: '80px 0', background: 'var(--bg-cream)' }}>
+    <section style={{ padding: '80px 0', background: '#EFEDE8' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 48px' }}>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>

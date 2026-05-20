@@ -17,7 +17,7 @@ const testimonials = [
 
 export default function Testimonials() {
   return (
-    <section style={{ padding: '80px 0', background: 'var(--bg-cream)' }}>
+    <section style={{ padding: '80px 0', background: '#FFFFFF' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 48px' }}>
 
         <h2 style={{
