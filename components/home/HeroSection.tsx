@@ -1,6 +1,6 @@
 export default function HeroSection() {
   return (
-    <section style={{ padding: '40px 0 64px', background: 'var(--bg-cream)' }}>
+    <section style={{ padding: '40px 0 64px', background: '#EFEDE8' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 48px' }}>
 
         {/* Layout */}

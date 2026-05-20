@@ -13,7 +13,7 @@ export default function Footer() {
               Find your flow, feel your season.
             </p>
             {/* Instagram icon */}
-            <a href="https://instagram.com/flowszn" target="_blank" rel="noreferrer"
+            <a href="https://instagram.com/flowwszn" target="_blank" rel="noreferrer"
               style={{ color: '#9A9A8A', display: 'inline-flex' }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
@@ -34,9 +34,9 @@ export default function Footer() {
 
           {/* Contact */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <a href="https://instagram.com/flowszn" target="_blank" rel="noreferrer"
+            <a href="https://instagram.com/flowwszn" target="_blank" rel="noreferrer"
               style={{ fontSize: '13px', color: '#9A9A8A', textDecoration: 'none' }}>
-              @flowszn
+              @flowwszn
             </a>
             <a href="tel:081234567890" style={{ fontSize: '13px', color: '#9A9A8A', textDecoration: 'none' }}>
               081234567890

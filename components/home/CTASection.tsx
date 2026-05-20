@@ -1,6 +1,6 @@
 export default function CTASection() {
   return (
-    <section style={{ padding: '100px 0', background: 'var(--bg-cream)', textAlign: 'center' }}>
+    <section style={{ padding: '80px 0 160px', background: 'var(--bg-cream)', textAlign: 'center' }}>
       <div style={{ maxWidth: '600px', margin: '0 auto', padding: '0 48px' }}>
         <h2 style={{
           fontFamily: 'var(--font-playfair)', fontSize: 'clamp(28px, 4vw, 42px)',
