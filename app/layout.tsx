@@ -28,7 +28,6 @@ export default function RootLayout({
     <html lang="id">
       <body className={`${playfair.variable} ${dmSans.variable}`}>
         <AppShell>{children}</AppShell>
-        <Footer />
       </body>
     </html>
   )
