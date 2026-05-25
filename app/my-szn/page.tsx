@@ -1,423 +1,281 @@
 "use client";
 import { useState } from "react";
-import { Camera, Edit2, Check, MapPin, Calendar } from "lucide-react";
+import Image from "next/image";
 
-const dummyUser = {
-  name: "Raina Putri",
-  email: "raina@gmail.com",
-  phone: "081234567890",
-  joinDate: "December 2025",
-  totalStamps: 7,
-  maxStamps: 10,
-};
-
-const dummyHistory = [
-  {
-    title: "Purple Flow",
-    date: "May 29, 2026",
-    location: "ACC Unair",
-    stamp: true,
-  },
-  {
-    title: "Morning Vinyasa",
-    date: "April 12, 2026",
-    location: "Taman Bungkul",
-    stamp: true,
-  },
-  {
-    title: "Iftar Flow",
-    date: "March 28, 2026",
-    location: "Kenjeran Park",
-    stamp: true,
-  },
-  {
-    title: "Citylight Flow",
-    date: "February 14, 2026",
-    location: "Pakuwon Mall",
-    stamp: true,
-  },
-];
+const totalStamps = 12;
+const filledStamps = 1; // nanti dari database
 
 export default function MySznPage() {
   const [isEditing, setIsEditing] = useState(false);
-  const [profile, setProfile] = useState(dummyUser);
-  const [editData, setEditData] = useState(dummyUser);
+  const [profile, setProfile] = useState({
+    name: "Shaz",
+    email: "nonashaz@gmail.com",
+    whatsapp: "081803210006",
+  });
+  const [editData, setEditData] = useState(profile);
 
-  const handleSave = () => {
-    setProfile(editData);
-    setIsEditing(false);
+  const handleToggleEdit = () => {
+    if (isEditing) {
+      setProfile(editData);
+      setIsEditing(false);
+    } else {
+      setEditData(profile);
+      setIsEditing(true);
+    }
   };
-
-  const stamps = Array.from(
-    { length: dummyUser.maxStamps },
-    (_, i) => i < profile.totalStamps,
-  );
 
   return (
     <main
       style={{
-        paddingTop: "120px",
+        paddingTop: "140px",
         minHeight: "100vh",
         background: "#F0EDE5",
-        paddingBottom: "60px",
+        paddingBottom: "80px",
       }}
     >
-      <div style={{ maxWidth: "800px", margin: "0 auto", padding: "0 24px" }}>
-        {/* Profile Card */}
-        <div
+      <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 32px" }}>
+        {/* Welcome Back */}
+        <h1
+          className="myszn-welcome"
           style={{
-            background: "white",
-            borderRadius: "20px",
-            padding: "28px",
-            marginBottom: "20px",
+            fontFamily: "var(--font-playfair)",
+            fontSize: "clamp(36px, 5vw, 64px)",
+            color: "var(--text-primary)",
+            textAlign: "right",
+            marginBottom: "48px",
+            lineHeight: 1.1,
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "20px",
-              marginBottom: "24px",
-            }}
-          >
-            {/* Avatar */}
-            <div style={{ position: "relative", flexShrink: 0 }}>
-              <div
-                style={{
-                  width: "72px",
-                  height: "72px",
-                  borderRadius: "50%",
-                  background: "#D4CFC6",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "28px",
-                  fontWeight: "600",
-                  color: "var(--text-primary)",
-                  overflow: "hidden",
-                }}
-              >
-                <img
-                  src="https://i.pravatar.cc/72?img=47"
-                  alt="profile"
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                />
-              </div>
-              {isEditing && (
-                <div
-                  style={{
-                    position: "absolute",
-                    bottom: 0,
-                    right: 0,
-                    width: "24px",
-                    height: "24px",
-                    borderRadius: "50%",
-                    background: "var(--text-primary)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                  }}
-                >
-                  <Camera size={12} color="white" />
-                </div>
-              )}
-            </div>
+          Welcome back!
+        </h1>
 
-            {/* Name + join date */}
-            <div style={{ flex: 1 }}>
-              {isEditing ? (
-                <input
-                  value={editData.name}
-                  onChange={(e) =>
-                    setEditData({ ...editData, name: e.target.value })
-                  }
-                  style={{
-                    fontFamily: "var(--font-playfair)",
-                    fontSize: "20px",
-                    color: "var(--text-primary)",
-                    border: "none",
-                    borderBottom: "1px solid var(--border)",
-                    outline: "none",
-                    background: "transparent",
-                    width: "100%",
-                    marginBottom: "4px",
-                  }}
-                />
-              ) : (
-                <h2
-                  style={{
-                    fontFamily: "var(--font-playfair)",
-                    fontSize: "20px",
-                    color: "var(--text-primary)",
-                    marginBottom: "4px",
-                  }}
-                >
-                  {profile.name}
-                </h2>
-              )}
-              <p style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
-                Flowies since {profile.joinDate}
-              </p>
-            </div>
-
-            {/* Edit / Done button */}
-            <button
-              onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
+        {/* Two column layout */}
+        <div className="myszn-layout">
+          {/* LEFT — Loyalty Card */}
+          <div style={{ position: "relative" }}>
+            {/* Pill label */}
+            <div
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                padding: "8px 16px",
+                position: "absolute",
+                top: "-22px",
+                left: "24px",
+                background: "#5A5A55",
                 borderRadius: "999px",
-                fontSize: "13px",
-                fontWeight: "500",
-                cursor: "pointer",
-                background: isEditing ? "var(--text-primary)" : "transparent",
-                color: isEditing ? "var(--bg-cream)" : "var(--text-primary)",
-                border: "1.5px solid var(--text-primary)",
+                padding: "12px 28px",
+                zIndex: 2,
               }}
             >
-              {isEditing ? <Check size={14} /> : <Edit2 size={14} />}
-              {isEditing ? "Done" : "Edit Profile"}
-            </button>
-          </div>
-
-          {/* Profile fields */}
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "12px" }}
-          >
-            {[
-              { label: "Email", key: "email", type: "email" },
-              { label: "Phone", key: "phone", type: "tel" },
-            ].map((field) => (
-              <div
-                key={field.key}
-                style={{ display: "flex", flexDirection: "column", gap: "4px" }}
-              >
-                <p
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--text-secondary)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                  }}
-                >
-                  {field.label}
-                </p>
-                {isEditing ? (
-                  <input
-                    type={field.type}
-                    value={editData[field.key as keyof typeof editData]}
-                    onChange={(e) =>
-                      setEditData({ ...editData, [field.key]: e.target.value })
-                    }
-                    style={{
-                      fontSize: "14px",
-                      color: "var(--text-primary)",
-                      border: "none",
-                      borderBottom: "1px solid var(--border)",
-                      outline: "none",
-                      background: "transparent",
-                      padding: "4px 0",
-                    }}
-                  />
-                ) : (
-                  <p style={{ fontSize: "14px", color: "var(--text-primary)" }}>
-                    {profile[field.key as keyof typeof profile]}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Stamp Card */}
-        <div
-          style={{
-            background: "#464642",
-            borderRadius: "20px",
-            padding: "28px",
-            marginBottom: "20px",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "20px",
-            }}
-          >
-            <div>
-              <h3
+              <p
                 style={{
                   fontFamily: "var(--font-playfair)",
                   fontSize: "18px",
-                  color: "#F0EDE5",
-                  marginBottom: "4px",
+                  color: "white",
+                  fontStyle: "italic",
+                  margin: 0,
                 }}
               >
-                My Stamps
-              </h3>
-              <p style={{ fontSize: "12px", color: "#9A9A8A" }}>
-                {profile.totalStamps}/{dummyUser.maxStamps} stamps collected
+                Flowies Loyalty Card
               </p>
             </div>
+
+            {/* Card box */}
             <div
               style={{
-                background: "rgba(255,255,255,0.1)",
-                borderRadius: "999px",
-                padding: "6px 14px",
-                fontSize: "12px",
-                color: "#F0EDE5",
+                background: "white",
+                borderRadius: "20px",
+                padding: "60px 28px 28px",
+                border: "1px solid var(--border)",
               }}
             >
-              {dummyUser.maxStamps - profile.totalStamps} more to reward 🎁
+              {/* Stamp grid — 4 columns x 3 rows */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(4, 1fr)",
+                  gap: "14px",
+                  marginBottom: "28px",
+                }}
+              >
+                {Array.from({ length: totalStamps }).map((_, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      aspectRatio: "1",
+                      borderRadius: "14px",
+                      border: "1.5px solid #D0CCC4",
+                      background: i < filledStamps ? "#F0EDE5" : "white",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      overflow: "hidden",
+                    }}
+                  >
+                    {i === 0 && (
+                      <Image
+                        src="/LOGO FLOWSZN PUTIH.svg"
+                        alt="stamp"
+                        width={60}
+                        height={60}
+                        style={{ objectFit: "contain" }}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Disclaimer */}
+              <p
+                style={{
+                  fontSize: "12px",
+                  color: "var(--text-muted)",
+                  textAlign: "center",
+                }}
+              >
+                Please contact us if there has been a mistake on the stamp
+              </p>
             </div>
           </div>
 
-          {/* Stamps grid */}
+          {/* RIGHT — Profile */}
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(5, 1fr)",
-              gap: "12px",
+              background: "white",
+              borderRadius: "20px",
+              padding: "32px 28px",
+              border: "1px solid var(--border)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "16px",
             }}
           >
-            {stamps.map((filled, i) => (
-              <div
-                key={i}
-                style={{
-                  aspectRatio: "1",
-                  borderRadius: "50%",
-                  border: "2px solid",
-                  borderColor: filled ? "#F0EDE5" : "rgba(255,255,255,0.2)",
-                  background: filled ? "#F0EDE5" : "transparent",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "20px",
-                }}
-              >
-                {filled ? "🧘" : ""}
-              </div>
-            ))}
-          </div>
-
-          {/* Progress bar */}
-          <div style={{ marginTop: "20px" }}>
+            {/* Avatar */}
             <div
               style={{
-                height: "4px",
-                background: "rgba(255,255,255,0.15)",
-                borderRadius: "999px",
+                width: "80px",
+                height: "80px",
+                borderRadius: "50%",
                 overflow: "hidden",
+                flexShrink: 0,
+                background: "#D4CFC6",
               }}
             >
-              <div
-                style={{
-                  height: "100%",
-                  borderRadius: "999px",
-                  background: "#F0EDE5",
-                  width: `${(profile.totalStamps / dummyUser.maxStamps) * 100}%`,
-                  transition: "width 0.3s ease",
-                }}
+              <img
+                src="https://i.pravatar.cc/80?img=47"
+                alt="profile"
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
               />
             </div>
-          </div>
-        </div>
 
-        {/* Booking History */}
-        <div
-          style={{ background: "white", borderRadius: "20px", padding: "28px" }}
-        >
-          <h3
-            style={{
-              fontFamily: "var(--font-playfair)",
-              fontSize: "18px",
-              color: "var(--text-primary)",
-              marginBottom: "20px",
-            }}
-          >
-            My Flow History
-          </h3>
-
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "12px" }}
-          >
-            {dummyHistory.map((item, i) => (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "14px 16px",
-                  borderRadius: "12px",
-                  background: "#F8F5F0",
-                }}
-              >
+            {/* Fields */}
+            <div
+              style={{
+                width: "100%",
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+              }}
+            >
+              {[
+                { label: "Name", key: "name", type: "text" },
+                { label: "Email", key: "email", type: "email" },
+                { label: "Whatsapp Number", key: "whatsapp", type: "tel" },
+              ].map((field) => (
                 <div
+                  key={field.key}
                   style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "4px",
+                    border: "1px solid var(--border)",
+                    borderRadius: "12px",
+                    padding: "12px 16px",
                   }}
                 >
                   <p
                     style={{
-                      fontSize: "14px",
-                      fontWeight: "600",
-                      color: "var(--text-primary)",
-                      fontFamily: "var(--font-playfair)",
+                      fontSize: "11px",
+                      color: "var(--text-secondary)",
+                      marginBottom: "4px",
                     }}
                   >
-                    {item.title}
+                    {field.label}
                   </p>
-                  <div style={{ display: "flex", gap: "12px" }}>
-                    <div
+                  {isEditing ? (
+                    <input
+                      type={field.type}
+                      value={editData[field.key as keyof typeof editData]}
+                      onChange={(e) =>
+                        setEditData({
+                          ...editData,
+                          [field.key]: e.target.value,
+                        })
+                      }
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px",
+                        width: "100%",
+                        border: "none",
+                        outline: "none",
+                        fontSize: "14px",
+                        fontWeight: "600",
+                        color: "var(--text-primary)",
+                        background: "transparent",
+                      }}
+                    />
+                  ) : (
+                    <p
+                      style={{
+                        fontSize: "14px",
+                        fontWeight: "600",
+                        color: "var(--text-primary)",
                       }}
                     >
-                      <Calendar size={11} color="var(--text-secondary)" />
-                      <span
-                        style={{
-                          fontSize: "11px",
-                          color: "var(--text-secondary)",
-                        }}
-                      >
-                        {item.date}
-                      </span>
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px",
-                      }}
-                    >
-                      <MapPin size={11} color="var(--text-secondary)" />
-                      <span
-                        style={{
-                          fontSize: "11px",
-                          color: "var(--text-secondary)",
-                        }}
-                      >
-                        {item.location}
-                      </span>
-                    </div>
-                  </div>
+                      {profile[field.key as keyof typeof profile]}
+                    </p>
+                  )}
                 </div>
-                {item.stamp && <div style={{ fontSize: "20px" }}>🧘</div>}
-              </div>
-            ))}
+              ))}
+            </div>
+
+            {/* Update Profile / Done button */}
+            <button
+              onClick={handleToggleEdit}
+              style={{
+                width: "100%",
+                padding: "14px",
+                borderRadius: "10px",
+                border: "none",
+                background: isEditing ? "#22c55e" : "var(--text-primary)",
+                color: "white",
+                fontSize: "14px",
+                fontWeight: "600",
+                cursor: "pointer",
+                transition: "background 0.2s ease",
+                marginTop: "8px",
+              }}
+            >
+              {isEditing ? "Done" : "Update Profile"}
+            </button>
           </div>
         </div>
       </div>
+
+      <style>{`
+  .myszn-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 48px;
+  }
+  @media (min-width: 768px) {
+    .myszn-layout {
+      grid-template-columns: 1.1fr 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+  }
+  @media (max-width: 767px) {
+    .myszn-welcome {
+      margin-bottom: 56px !important;
+      text-align: center !important;
+    }
+  }
+`}</style>
     </main>
   );
 }
