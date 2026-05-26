@@ -1,11 +1,33 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, X } from 'lucide-react'
 import { useState } from 'react'
 
-export default function LoginPage() {
-  const [showPassword, setShowPassword] = useState(false)
+export default function ForgotPasswordPage() {
+  const router = useRouter()
+
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
+
+  const handleResetPassword = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    if (newPassword !== confirmPassword) {
+      setErrorMessage('Password does not match!')
+      return
+    }
+
+    setErrorMessage('')
+
+    // Frontend dummy dulu.
+    // Nanti bagian ini diganti dengan logic reset password Supabase.
+    router.push('/login')
+  }
 
   return (
     <main
@@ -62,7 +84,7 @@ export default function LoginPage() {
         />
       </div>
 
-      {/* Login wrapper */}
+      {/* Forgot password wrapper */}
       <div
         style={{
           position: 'relative',
@@ -75,7 +97,7 @@ export default function LoginPage() {
         }}
       >
         <div
-          className="login-box-wrapper"
+          className="forgot-box-wrapper"
           style={{
             position: 'relative',
             width: '100%',
@@ -84,7 +106,7 @@ export default function LoginPage() {
         >
           {/* Close button */}
           <Link
-            href="/"
+            href="/login"
             style={{
               position: 'absolute',
               top: '-26px',
@@ -106,22 +128,22 @@ export default function LoginPage() {
             <X size={25} />
           </Link>
 
-          {/* Login card */}
+          {/* Forgot password card */}
           <section
-            className="login-card"
+            className="forgot-card"
             style={{
               width: '100%',
               background: '#F3EEE5',
               borderRadius: '18px',
-              padding: '56px 64px 70px',
+              padding: '72px 64px 70px',
               boxShadow: '0 18px 50px rgba(0,0,0,0.2)',
             }}
           >
-            <form onSubmit={(event) => event.preventDefault()}>
-              {/* Email */}
+            <form onSubmit={handleResetPassword}>
+              {/* New Password */}
               <div style={{ marginBottom: '24px' }}>
                 <label
-                  htmlFor="email"
+                  htmlFor="new-password"
                   style={{
                     display: 'block',
                     marginBottom: '12px',
@@ -130,49 +152,20 @@ export default function LoginPage() {
                     fontFamily: 'var(--font-playfair)',
                   }}
                 >
-                  Email
-                </label>
-
-                <input
-                  id="email"
-                  type="email"
-                  placeholder="Insert your email here"
-                  style={{
-                    width: '100%',
-                    height: '46px',
-                    borderRadius: '10px',
-                    border: '1px solid #5F5D58',
-                    background: 'transparent',
-                    padding: '0 14px',
-                    outline: 'none',
-                    fontSize: '18px',
-                    color: '#1E1E1A',
-                    fontFamily: 'var(--font-playfair)',
-                  }}
-                />
-              </div>
-
-              {/* Password */}
-              <div style={{ marginBottom: '10px' }}>
-                <label
-                  htmlFor="password"
-                  style={{
-                    display: 'block',
-                    marginBottom: '12px',
-                    fontSize: '18px',
-                    color: '#1E1E1A',
-                    fontFamily: 'var(--font-playfair)',
-                  }}
-                >
-                  Password
+                  New Password
                 </label>
 
                 <div style={{ position: 'relative' }}>
                   <input
-                    id="password"
+                    id="new-password"
                     className="password-input"
-                    type={showPassword ? 'text' : 'password'}
+                    type={showNewPassword ? 'text' : 'password'}
                     placeholder="Insert your password here"
+                    value={newPassword}
+                    onChange={(event) => {
+                      setNewPassword(event.target.value)
+                      setErrorMessage('')
+                    }}
                     style={{
                       width: '100%',
                       height: '46px',
@@ -189,8 +182,10 @@ export default function LoginPage() {
 
                   <button
                     type="button"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={
+                      showNewPassword ? 'Hide password' : 'Show password'
+                    }
+                    onClick={() => setShowNewPassword(!showNewPassword)}
                     style={{
                       position: 'absolute',
                       top: '50%',
@@ -206,49 +201,100 @@ export default function LoginPage() {
                       justifyContent: 'center',
                     }}
                   >
-                    {showPassword ? <EyeOff size={22} /> : <Eye size={22} />}
+                    {showNewPassword ? <EyeOff size={22} /> : <Eye size={22} />}
                   </button>
                 </div>
               </div>
 
-              {/* Forgot password */}
-              <div style={{ marginBottom: '56px' }}>
-                <Link
-                  href="/forgot-password"
+              {/* Confirm Password */}
+              <div style={{ marginBottom: errorMessage ? '12px' : '72px' }}>
+                <label
+                  htmlFor="confirm-password"
                   style={{
+                    display: 'block',
+                    marginBottom: '12px',
+                    fontSize: '18px',
                     color: '#1E1E1A',
-                    fontSize: '16px',
-                    textDecoration: 'underline',
                     fontFamily: 'var(--font-playfair)',
                   }}
                 >
-                  Forgot password
-                </Link>
+                  Confirm Password
+                </label>
+
+                <div style={{ position: 'relative' }}>
+                  <input
+                    id="confirm-password"
+                    className="password-input"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    placeholder="Insert your password here"
+                    value={confirmPassword}
+                    onChange={(event) => {
+                      setConfirmPassword(event.target.value)
+                      setErrorMessage('')
+                    }}
+                    style={{
+                      width: '100%',
+                      height: '46px',
+                      borderRadius: '10px',
+                      border: '1px solid #5F5D58',
+                      background: 'transparent',
+                      padding: '0 48px 0 14px',
+                      outline: 'none',
+                      fontSize: '18px',
+                      color: '#1E1E1A',
+                      fontFamily: 'var(--font-playfair)',
+                    }}
+                  />
+
+                  <button
+                    type="button"
+                    aria-label={
+                      showConfirmPassword
+                        ? 'Hide password'
+                        : 'Show password'
+                    }
+                    onClick={() =>
+                      setShowConfirmPassword(!showConfirmPassword)
+                    }
+                    style={{
+                      position: 'absolute',
+                      top: '50%',
+                      right: '14px',
+                      transform: 'translateY(-50%)',
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#4C4A45',
+                      cursor: 'pointer',
+                      padding: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff size={22} />
+                    ) : (
+                      <Eye size={22} />
+                    )}
+                  </button>
+                </div>
               </div>
 
-              {/* Register */}
-              <p
-                style={{
-                  textAlign: 'center',
-                  marginBottom: '10px',
-                  color: '#1E1E1A',
-                  fontSize: '17px',
-                  fontFamily: 'var(--font-playfair)',
-                }}
-              >
-                Not a Flowies yet?{' '}
-                <Link
-                  href="/register"
+              {/* Error message */}
+              {errorMessage && (
+                <p
                   style={{
-                    color: '#1E1E1A',
-                    textDecoration: 'underline',
+                    color: '#D94436',
+                    fontSize: '17px',
+                    fontFamily: 'var(--font-playfair)',
+                    marginBottom: '52px',
                   }}
                 >
-                  Register here
-                </Link>
-              </p>
+                  {errorMessage}
+                </p>
+              )}
 
-              {/* Login button */}
+              {/* Reset button */}
               <button
                 type="submit"
                 style={{
@@ -264,7 +310,7 @@ export default function LoginPage() {
                   boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
                 }}
               >
-                Log In
+                Reset Password
               </button>
             </form>
           </section>
@@ -304,22 +350,22 @@ export default function LoginPage() {
           }
 
           @media (max-width: 767px) {
-            .login-box-wrapper {
+            .forgot-box-wrapper {
               max-width: 92vw !important;
             }
 
-            .login-card {
-              padding: 44px 24px 48px !important;
+            .forgot-card {
+              padding: 58px 24px 56px !important;
               border-radius: 18px !important;
             }
           }
 
           @media (max-width: 480px) {
-            .login-card {
-              padding: 42px 20px 44px !important;
+            .forgot-card {
+              padding: 52px 20px 50px !important;
             }
 
-            .login-box-wrapper a[href="/"] {
+            .forgot-box-wrapper a[href="/login"] {
               left: -12px !important;
               top: -24px !important;
             }
