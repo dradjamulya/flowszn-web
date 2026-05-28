@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Search,
   ChevronLeft,
@@ -8,6 +8,7 @@ import {
   BarChart2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 const preferences = {
   who: {
@@ -35,86 +36,6 @@ const preferences = {
     ],
   },
 };
-
-const events = [
-  {
-    title: "Purple Flow",
-    time: "08:00",
-    date: "May 29, 2026",
-    instructor: "Coach Fanny",
-    location: "ACC Unair",
-    level: "All Levels",
-    spotsRemaining: 4,
-    totalSpots: 12,
-    tag: "Filling up fast!",
-    desc: "Get yourself relaxed in a purple themed flow to celebrate mother's day! Happy mother's day, Mothers!",
-    benefits: [
-      "ESQA Products",
-      "Teazzi",
-      "Kanalu",
-      "Shihlin (Mini special size)",
-      "Documentation",
-      "After movie",
-    ],
-    image:
-      "https://images.unsplash.com/photo-1588286840104-8957b019727f?w=600&q=80",
-  },
-  {
-    title: "Morning Vinyasa",
-    time: "07:00",
-    date: "June 7, 2026",
-    instructor: "Coach Ayu",
-    location: "Taman Bungkul",
-    level: "Beginner",
-    spotsRemaining: 8,
-    totalSpots: 20,
-    tag: null,
-    desc: "Start your morning with a gentle vinyasa flow surrounded by nature. Perfect for all levels.",
-    benefits: [
-      "Yoga mat rental",
-      "Healthy snacks",
-      "Documentation",
-      "E-certificate",
-    ],
-    image:
-      "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&q=80",
-  },
-  {
-    title: "Sunset Flow",
-    time: "17:30",
-    date: "June 14, 2026",
-    instructor: "Coach Rizky",
-    location: "Pantai Kenjeran",
-    level: "All Levels",
-    spotsRemaining: 2,
-    totalSpots: 15,
-    tag: "Filling up fast!",
-    desc: "Wind down with the golden hour. A flowing practice to release tension.",
-    benefits: [
-      "Sunset view spot",
-      "Documentation",
-      "After movie",
-      "Healthy drinks",
-    ],
-    image:
-      "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&q=80",
-  },
-  {
-    title: "Evening Yin",
-    time: "19:00",
-    date: "June 21, 2026",
-    instructor: "Coach Sara",
-    location: "Studio Flowszn",
-    level: "All Levels",
-    spotsRemaining: 10,
-    totalSpots: 12,
-    tag: null,
-    desc: "Deep, slow-paced practice targeting connective tissues. Perfect for recovery.",
-    benefits: ["Mat provided", "Aromatherapy", "Documentation", "Herbal tea"],
-    image:
-      "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&q=80",
-  },
-];
 
 const months = [
   "January",
@@ -144,6 +65,33 @@ export default function SchedulePage() {
     enjoy: "",
     goal: "",
   });
+  const [events, setEvents] = useState<any[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState(true);
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("events")
+        .select(
+          `
+          *,
+          sessions (
+            id,
+            date_time,
+            price,
+            total_slots,
+            booked_slots
+          )
+        `,
+        )
+        .eq("status", "on_sale");
+
+      if (!error && data) setEvents(data);
+      setLoadingEvents(false);
+    };
+    fetchEvents();
+  }, []);
 
   const toggle = (key: string, val: string) => {
     setSelected((prev) => ({ ...prev, [key]: prev[key] === val ? "" : val }));
@@ -156,7 +104,7 @@ export default function SchedulePage() {
     setScrollProgress(isNaN(progress) ? 0 : progress);
   };
 
-  const scrollBy = (dir: number) => {
+  const scrollByDir = (dir: number) => {
     if (!scrollRef.current) return;
     scrollRef.current.scrollBy({ left: dir * 360, behavior: "smooth" });
   };
@@ -203,6 +151,13 @@ export default function SchedulePage() {
         </svg>
       )}
     </div>
+  );
+
+  const filteredEvents = events.filter(
+    (e) =>
+      search === "" ||
+      e.title?.toLowerCase().includes(search.toLowerCase()) ||
+      e.instructor_name?.toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
@@ -478,306 +433,378 @@ export default function SchedulePage() {
         </div>
 
         {/* Cards */}
-        <div
-          ref={scrollRef}
-          onScroll={handleScroll}
-          className="scroll-wrapper"
-          style={{
-            display: "flex",
-            gap: "16px",
-            overflowX: "auto",
-            paddingBottom: "8px",
-            scrollBehavior: "smooth",
-            scrollbarWidth: "none",
-          }}
-        >
-          <style>{`div::-webkit-scrollbar{display:none}`}</style>
+        {loadingEvents ? (
+          <p
+            style={{
+              fontSize: "14px",
+              color: "var(--text-secondary)",
+              textAlign: "center",
+              padding: "40px 0",
+            }}
+          >
+            Loading events...
+          </p>
+        ) : filteredEvents.length === 0 ? (
+          <p
+            style={{
+              fontSize: "14px",
+              color: "var(--text-secondary)",
+              textAlign: "center",
+              padding: "40px 0",
+            }}
+          >
+            No events available.
+          </p>
+        ) : (
+          <div
+            ref={scrollRef}
+            onScroll={handleScroll}
+            className="scroll-wrapper"
+            style={{
+              display: "flex",
+              gap: "16px",
+              overflowX: "auto",
+              paddingBottom: "8px",
+              scrollBehavior: "smooth",
+              scrollbarWidth: "none",
+            }}
+          >
+            <style>{`div::-webkit-scrollbar{display:none}`}</style>
 
-          {events
-            .filter(
-              (e) =>
-                search === "" ||
-                e.title.toLowerCase().includes(search.toLowerCase()) ||
-                e.instructor.toLowerCase().includes(search.toLowerCase()),
-            )
-            .map((event, i) => (
-              <div
-                key={i}
-                className="event-card"
-                style={{
-                  background: "white",
-                  borderRadius: "16px",
-                  overflow: "hidden",
-                  display: "flex",
-                  flexDirection: "column",
-                  flexShrink: 0,
-                  boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-                  maxHeight: "calc(100vh - 280px)",
-                }}
-              >
+            {filteredEvents.map((event) => {
+              const session = event.sessions?.[0];
+              const spotsRemaining =
+                (session?.total_slots ?? 0) - (session?.booked_slots ?? 0);
+              const totalSpots = session?.total_slots ?? 0;
+              const dateStr = session?.date_time
+                ? new Date(session.date_time).toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })
+                : "TBA";
+              const timeStr = session?.date_time
+                ? new Date(session.date_time).toLocaleTimeString("en-US", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : "";
+              const fillingUp = spotsRemaining > 0 && spotsRemaining <= 3;
+              const showTag = event.tag || fillingUp;
+
+              return (
                 <div
+                  key={event.id}
+                  className="event-card"
                   style={{
-                    position: "relative",
-                    height: "180px",
+                    background: "white",
+                    borderRadius: "16px",
                     overflow: "hidden",
-                  }}
-                >
-                  <img
-                    src={event.image}
-                    alt={event.title}
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                    }}
-                  />
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: "12px",
-                      left: "12px",
-                      background: "rgba(255,255,255,0.9)",
-                      backdropFilter: "blur(4px)",
-                      padding: "4px 10px",
-                      borderRadius: "6px",
-                      fontSize: "11px",
-                      fontWeight: "600",
-                      color: "var(--text-primary)",
-                    }}
-                  >
-                    {event.date}
-                  </div>
-                  <div
-                    style={{
-                      position: "absolute",
-                      bottom: "12px",
-                      left: "12px",
-                    }}
-                  >
-                    <p
-                      style={{
-                        fontSize: "15px",
-                        fontWeight: "600",
-                        color: "white",
-                        fontFamily: "var(--font-playfair)",
-                        textShadow: "0 2px 8px rgba(0,0,0,0.5)",
-                      }}
-                    >
-                      {event.title}
-                    </p>
-                    <p
-                      style={{
-                        fontSize: "12px",
-                        color: "rgba(255,255,255,0.9)",
-                        textShadow: "0 1px 4px rgba(0,0,0,0.4)",
-                      }}
-                    >
-                      {event.time}
-                    </p>
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    padding: "16px 18px",
                     display: "flex",
                     flexDirection: "column",
-                    gap: "10px",
-                    flex: 1,
+                    flexShrink: 0,
+                    boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+                    maxHeight: "calc(100vh - 280px)",
                   }}
                 >
+                  {/* Image */}
                   <div
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
+                      position: "relative",
+                      height: "180px",
+                      overflow: "hidden",
                     }}
                   >
+                    <img
+                      src={
+                        event.thumbnail_url ||
+                        "https://images.unsplash.com/photo-1588286840104-8957b019727f?w=600&q=80"
+                      }
+                      alt={event.title}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
                     <div
                       style={{
-                        width: "34px",
-                        height: "34px",
-                        borderRadius: "50%",
-                        background: "#D4CFC6",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "13px",
+                        position: "absolute",
+                        top: "12px",
+                        left: "12px",
+                        background: "rgba(255,255,255,0.9)",
+                        backdropFilter: "blur(4px)",
+                        padding: "4px 10px",
+                        borderRadius: "6px",
+                        fontSize: "11px",
                         fontWeight: "600",
                         color: "var(--text-primary)",
-                        flexShrink: 0,
                       }}
                     >
-                      {event.instructor[6]}
+                      {dateStr}
                     </div>
-                    <p
+                    <div
                       style={{
-                        fontSize: "13px",
-                        fontWeight: "600",
-                        color: "var(--text-primary)",
+                        position: "absolute",
+                        bottom: "12px",
+                        left: "12px",
                       }}
                     >
-                      {event.instructor}
-                    </p>
+                      <p
+                        style={{
+                          fontSize: "15px",
+                          fontWeight: "600",
+                          color: "white",
+                          fontFamily: "var(--font-playfair)",
+                          textShadow: "0 2px 8px rgba(0,0,0,0.5)",
+                        }}
+                      >
+                        {event.title}
+                      </p>
+                      <p
+                        style={{
+                          fontSize: "12px",
+                          color: "rgba(255,255,255,0.9)",
+                          textShadow: "0 1px 4px rgba(0,0,0,0.4)",
+                        }}
+                      >
+                        {timeStr}
+                      </p>
+                    </div>
                   </div>
 
+                  {/* Content */}
                   <div
-                    style={{ display: "flex", justifyContent: "space-between" }}
+                    style={{
+                      padding: "16px 18px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "10px",
+                      flex: 1,
+                      overflowY: "auto",
+                    }}
                   >
+                    {/* Instructor */}
                     <div
                       style={{
                         display: "flex",
                         alignItems: "center",
-                        gap: "4px",
+                        gap: "10px",
                       }}
                     >
-                      <MapPin size={11} color="var(--text-secondary)" />
-                      <span
+                      {event.instructor_photo_url ? (
+                        <img
+                          src={event.instructor_photo_url}
+                          alt={event.instructor_name}
+                          style={{
+                            width: "34px",
+                            height: "34px",
+                            borderRadius: "50%",
+                            objectFit: "cover",
+                            flexShrink: 0,
+                          }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: "34px",
+                            height: "34px",
+                            borderRadius: "50%",
+                            background: "#D4CFC6",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: "13px",
+                            fontWeight: "600",
+                            color: "var(--text-primary)",
+                            flexShrink: 0,
+                          }}
+                        >
+                          {event.instructor_name?.[0] ?? "?"}
+                        </div>
+                      )}
+                      <p
                         style={{
-                          fontSize: "11px",
-                          color: "var(--text-secondary)",
-                        }}
-                      >
-                        {event.location}
-                      </span>
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px",
-                      }}
-                    >
-                      <BarChart2 size={11} color="var(--text-secondary)" />
-                      <span
-                        style={{
-                          fontSize: "11px",
-                          color: "var(--text-secondary)",
-                        }}
-                      >
-                        {event.level}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        marginBottom: "5px",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: "11px",
-                          color: "var(--text-secondary)",
-                        }}
-                      >
-                        Spots remaining
-                      </span>
-                      <span
-                        style={{
-                          fontSize: "11px",
+                          fontSize: "13px",
                           fontWeight: "600",
                           color: "var(--text-primary)",
                         }}
                       >
-                        {event.spotsRemaining} / {event.totalSpots}
-                      </span>
+                        {event.instructor_name}
+                      </p>
                     </div>
+
+                    {/* Location + Level */}
                     <div
                       style={{
-                        height: "4px",
-                        background: "#E8E4DC",
-                        borderRadius: "999px",
-                        overflow: "hidden",
+                        display: "flex",
+                        justifyContent: "space-between",
                       }}
                     >
                       <div
                         style={{
-                          height: "100%",
-                          borderRadius: "999px",
-                          background:
-                            event.spotsRemaining <= 3
-                              ? "#E24B4A"
-                              : "var(--text-primary)",
-                          width: `${(event.spotsRemaining / event.totalSpots) * 100}%`,
-                        }}
-                      />
-                    </div>
-                    {event.tag && (
-                      <p
-                        style={{
-                          fontSize: "11px",
-                          color: "#E24B4A",
-                          marginTop: "3px",
-                          fontWeight: "500",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
                         }}
                       >
-                        {event.tag}
-                      </p>
-                    )}
-                  </div>
-
-                  <p
-                    style={{
-                      fontSize: "12px",
-                      color: "var(--text-secondary)",
-                      lineHeight: "1.6",
-                    }}
-                  >
-                    {event.desc}
-                  </p>
-
-                  <div>
-                    <p
-                      style={{
-                        fontSize: "12px",
-                        fontWeight: "600",
-                        color: "var(--text-primary)",
-                        marginBottom: "4px",
-                      }}
-                    >
-                      Benefits:
-                    </p>
-                    <ul style={{ paddingLeft: "16px", margin: 0 }}>
-                      {event.benefits.map((b, j) => (
-                        <li
-                          key={j}
+                        <MapPin size={11} color="var(--text-secondary)" />
+                        <span
                           style={{
                             fontSize: "11px",
                             color: "var(--text-secondary)",
-                            lineHeight: "1.8",
                           }}
                         >
-                          {b}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                          {event.location}
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}
+                      >
+                        <BarChart2 size={11} color="var(--text-secondary)" />
+                        <span
+                          style={{
+                            fontSize: "11px",
+                            color: "var(--text-secondary)",
+                          }}
+                        >
+                          {event.level || "All Levels"}
+                        </span>
+                      </div>
+                    </div>
 
-                  <button
-                    onClick={() => router.push("/book/1")}
-                    style={{
-                      width: "100%",
-                      padding: "12px",
-                      borderRadius: "8px",
-                      border: "none",
-                      background: "#5A5A55",
-                      color: "white",
-                      fontSize: "13px",
-                      fontWeight: "500",
-                      cursor: "pointer",
-                      marginTop: "auto",
-                    }}
-                  >
-                    Book Now
-                  </button>
+                    {/* Spots */}
+                    <div>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          marginBottom: "5px",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: "11px",
+                            color: "var(--text-secondary)",
+                          }}
+                        >
+                          Spots remaining
+                        </span>
+                        <span
+                          style={{
+                            fontSize: "11px",
+                            fontWeight: "600",
+                            color: "var(--text-primary)",
+                          }}
+                        >
+                          {spotsRemaining} / {totalSpots}
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          height: "4px",
+                          background: "#E8E4DC",
+                          borderRadius: "999px",
+                          overflow: "hidden",
+                        }}
+                      >
+                        <div
+                          style={{
+                            height: "100%",
+                            borderRadius: "999px",
+                            background: showTag
+                              ? "#E24B4A"
+                              : "var(--text-primary)",
+                            width:
+                              totalSpots > 0
+                                ? `${((totalSpots - spotsRemaining) / totalSpots) * 100}%`
+                                : "0%",
+                          }}
+                        />
+                      </div>
+                      {showTag && (
+                        <p
+                          style={{
+                            fontSize: "11px",
+                            color: "#E24B4A",
+                            marginTop: "3px",
+                            fontWeight: "500",
+                          }}
+                        >
+                          {event.tag || "Filling up fast!"}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Description */}
+                    <p
+                      style={{
+                        fontSize: "12px",
+                        color: "var(--text-secondary)",
+                        lineHeight: "1.6",
+                      }}
+                    >
+                      {event.description}
+                    </p>
+
+                    {/* Benefits */}
+                    {event.benefits && event.benefits.length > 0 && (
+                      <div>
+                        <p
+                          style={{
+                            fontSize: "12px",
+                            fontWeight: "600",
+                            color: "var(--text-primary)",
+                            marginBottom: "4px",
+                          }}
+                        >
+                          Benefits:
+                        </p>
+                        <ul style={{ paddingLeft: "16px", margin: 0 }}>
+                          {event.benefits.map((b: string, j: number) => (
+                            <li
+                              key={j}
+                              style={{
+                                fontSize: "11px",
+                                color: "var(--text-secondary)",
+                                lineHeight: "1.8",
+                              }}
+                            >
+                              {b}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Book Now */}
+                    <button
+                      onClick={() => router.push(`/book/${event.id}`)}
+                      style={{
+                        width: "100%",
+                        padding: "12px",
+                        borderRadius: "8px",
+                        border: "none",
+                        background: "#5A5A55",
+                        color: "white",
+                        fontSize: "13px",
+                        fontWeight: "500",
+                        cursor: "pointer",
+                        marginTop: "auto",
+                      }}
+                    >
+                      Book Now
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
-        </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Scroll controls */}
         <div
@@ -789,7 +816,7 @@ export default function SchedulePage() {
           }}
         >
           <button
-            onClick={() => scrollBy(-1)}
+            onClick={() => scrollByDir(-1)}
             style={{
               background: "none",
               border: "none",
@@ -813,7 +840,7 @@ export default function SchedulePage() {
             }}
           />
           <button
-            onClick={() => scrollBy(1)}
+            onClick={() => scrollByDir(1)}
             style={{
               background: "none",
               border: "none",
@@ -825,7 +852,6 @@ export default function SchedulePage() {
           </button>
         </div>
 
-        {/* Simple footer */}
         <div style={{ marginTop: "48px", textAlign: "center" }}>
           <p style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
             © 2026 flowszn. All rights reserved.
@@ -834,43 +860,28 @@ export default function SchedulePage() {
       </div>
 
       <style>{`
-      @media (min-width: 1024px) {
-  .schedule-header {
-    margin-top: 48px;
-  }
-}
-  @media (min-width: 640px) {
-  .pref-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0;
-    align-items: start;
-  }
-}
-    @media (max-width: 639px) {
-  .pref-col {
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-  }
-  .pref-col-border {
-    border-left: none !important;
-    border-top: 1px solid var(--border);
-    padding-top: 20px !important;
-  }
-}
-  @media (max-width: 640px) {
-  .event-card {
-    min-width: calc(100vw - 80px) !important;
-    max-width: calc(100vw - 80px) !important;
-  }
-}
-@media (min-width: 641px) {
-  .event-card {
-    min-width: 320px !important;
-    max-width: 320px !important;
-  }
-}
-`}</style>
+        @media (min-width: 1024px) {
+          .schedule-header { margin-top: 48px; }
+        }
+        @media (min-width: 640px) {
+          .pref-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0;
+            align-items: start;
+          }
+        }
+        @media (max-width: 639px) {
+          .pref-col { padding-left: 0 !important; padding-right: 0 !important; }
+          .pref-col-border { border-left: none !important; border-top: 1px solid var(--border); padding-top: 20px !important; }
+        }
+        @media (max-width: 640px) {
+          .event-card { min-width: calc(100vw - 80px) !important; max-width: calc(100vw - 80px) !important; }
+        }
+        @media (min-width: 641px) {
+          .event-card { min-width: 320px !important; max-width: 320px !important; }
+        }
+      `}</style>
     </main>
   );
 }
