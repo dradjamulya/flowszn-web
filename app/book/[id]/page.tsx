@@ -1,8 +1,9 @@
 "use client";
 import { useState } from "react";
-import { ArrowLeft, MapPin, Upload } from "lucide-react";
+import { MapPin, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import BackButton from "@/components/layout/BackButton";
+import { submitBooking } from "@/lib/actions/booking";
 
 const eventData = {
   title: "Purple Flow",
@@ -25,6 +26,8 @@ const eventData = {
 
 export default function BookPage() {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [useProfile, setUseProfile] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", whatsapp: "" });
   const [bookingOption, setBookingOption] = useState<"personal" | "bestie">(
@@ -32,6 +35,38 @@ export default function BookPage() {
   );
   const [matReservation, setMatReservation] = useState<"no" | "yes">("no");
   const [paymentFile, setPaymentFile] = useState<File | null>(null);
+
+  const handleBooking = async () => {
+    if (!form.name || !form.email || !form.whatsapp) {
+      setError("Mohon isi semua field terlebih dahulu.");
+      return;
+    }
+    if (!paymentFile) {
+      setError("Mohon upload bukti pembayaran.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    const result = await submitBooking({
+      name: form.name,
+      email: form.email,
+      whatsapp: form.whatsapp,
+      booking_option: bookingOption,
+      mat_reservation: matReservation === "yes",
+      session_id: "73db317d-38af-46a0-8fa0-9697f0f60300",
+      payment_proof: paymentFile,
+    });
+
+    setLoading(false);
+
+    if (result.success) {
+      router.push("/book/thanks");
+    } else {
+      setError(result.error || "Terjadi kesalahan, coba lagi.");
+    }
+  };
 
   const CheckIcon = () => (
     <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
@@ -76,7 +111,7 @@ export default function BookPage() {
       style={{
         minHeight: "100vh",
         background: "#F0EDE5",
-        padding: "50px 0 40px",
+        padding: "130px 0 40px",
       }}
     >
       <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "0 32px" }}>
@@ -97,7 +132,6 @@ export default function BookPage() {
               fontSize: "clamp(24px, 3vw, 36px)",
               color: "var(--text-primary)",
               textAlign: "center",
-              marginBottom: "24px",
             }}
           >
             Book Sesh...
@@ -442,16 +476,7 @@ export default function BookPage() {
                         color: "var(--text-secondary)",
                       }}
                     >
-                      {opt.sub && (
-                        <span
-                          style={{
-                            fontSize: "12px",
-                            color: "var(--text-secondary)",
-                          }}
-                        >
-                          {opt.sub}
-                        </span>
-                      )}
+                      {opt.sub}
                     </span>
                   </div>
                 ))}
@@ -504,7 +529,12 @@ export default function BookPage() {
                       {opt.label}
                     </span>
                     {opt.sub && (
-                      <span style={{ fontSize: "12px", color: "#E24B4A" }}>
+                      <span
+                        style={{
+                          fontSize: "12px",
+                          color: "var(--text-secondary)",
+                        }}
+                      >
                         {opt.sub}
                       </span>
                     )}
@@ -557,23 +587,37 @@ export default function BookPage() {
               </label>
             </div>
 
+            {/* Error message */}
+            {error && (
+              <p
+                style={{
+                  fontSize: "12px",
+                  color: "#E24B4A",
+                  textAlign: "center",
+                }}
+              >
+                {error}
+              </p>
+            )}
+
             {/* Book Now */}
             <button
-              onClick={() => router.push("/book/thanks")}
+              onClick={handleBooking}
+              disabled={loading}
               style={{
                 width: "100%",
                 padding: "13px",
                 borderRadius: "10px",
                 border: "none",
-                background: "var(--text-primary)",
+                background: loading ? "#9A9A94" : "var(--text-primary)",
                 color: "var(--bg-cream)",
                 fontSize: "14px",
                 fontWeight: "500",
-                cursor: "pointer",
+                cursor: loading ? "not-allowed" : "pointer",
                 fontFamily: "var(--font-playfair)",
               }}
             >
-              Book Now
+              {loading ? "Memproses..." : "Book Now"}
             </button>
           </div>
         </div>
