@@ -1,11 +1,67 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, X } from 'lucide-react'
 import { useState } from 'react'
+import type { FormEvent } from 'react'
+import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
+  const router = useRouter()
+
   const [showPassword, setShowPassword] = useState(false)
+
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+
+  const [errorMessage, setErrorMessage] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    setErrorMessage('')
+    setSuccessMessage('')
+
+    if (!email.trim()) {
+      setErrorMessage('Email is required!')
+      return
+    }
+
+    if (!password) {
+      setErrorMessage('Password is required!')
+      return
+    }
+
+    try {
+      setLoading(true)
+
+      const supabase = createClient()
+
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (error) {
+        setErrorMessage(error.message)
+        return
+      }
+
+      setSuccessMessage('Login successful! Redirecting...')
+
+      setTimeout(() => {
+        router.push('/my-szn')
+        router.refresh()
+      }, 800)
+    } catch {
+      setErrorMessage('Something went wrong. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <main
@@ -117,7 +173,7 @@ export default function LoginPage() {
               boxShadow: '0 18px 50px rgba(0,0,0,0.2)',
             }}
           >
-            <form onSubmit={(event) => event.preventDefault()}>
+            <form onSubmit={handleLogin}>
               {/* Email */}
               <div style={{ marginBottom: '24px' }}>
                 <label
@@ -137,6 +193,12 @@ export default function LoginPage() {
                   id="email"
                   type="email"
                   placeholder="Insert your email here"
+                  value={email}
+                  onChange={(event) => {
+                    setEmail(event.target.value)
+                    setErrorMessage('')
+                    setSuccessMessage('')
+                  }}
                   style={{
                     width: '100%',
                     height: '46px',
@@ -173,6 +235,12 @@ export default function LoginPage() {
                     className="password-input"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Insert your password here"
+                    value={password}
+                    onChange={(event) => {
+                      setPassword(event.target.value)
+                      setErrorMessage('')
+                      setSuccessMessage('')
+                    }}
                     style={{
                       width: '100%',
                       height: '46px',
@@ -212,7 +280,12 @@ export default function LoginPage() {
               </div>
 
               {/* Forgot password */}
-              <div style={{ marginBottom: '56px' }}>
+              <div
+                style={{
+                  marginBottom:
+                    errorMessage || successMessage ? '18px' : '56px',
+                }}
+              >
                 <Link
                   href="/forgot-password"
                   style={{
@@ -225,6 +298,33 @@ export default function LoginPage() {
                   Forgot password
                 </Link>
               </div>
+
+              {/* Message */}
+              {errorMessage && (
+                <p
+                  style={{
+                    color: '#D94436',
+                    fontSize: '16px',
+                    fontFamily: 'var(--font-playfair)',
+                    marginBottom: '28px',
+                  }}
+                >
+                  {errorMessage}
+                </p>
+              )}
+
+              {successMessage && (
+                <p
+                  style={{
+                    color: '#4C7A4C',
+                    fontSize: '16px',
+                    fontFamily: 'var(--font-playfair)',
+                    marginBottom: '28px',
+                  }}
+                >
+                  {successMessage}
+                </p>
+              )}
 
               {/* Register */}
               <p
@@ -251,20 +351,21 @@ export default function LoginPage() {
               {/* Login button */}
               <button
                 type="submit"
+                disabled={loading}
                 style={{
                   width: '100%',
                   height: '48px',
                   borderRadius: '10px',
                   border: 'none',
-                  background: '#4C4A45',
+                  background: loading ? '#77746D' : '#4C4A45',
                   color: '#F3EEE5',
                   fontSize: '20px',
                   fontFamily: 'var(--font-playfair)',
-                  cursor: 'pointer',
+                  cursor: loading ? 'not-allowed' : 'pointer',
                   boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
                 }}
               >
-                Log In
+                {loading ? 'Logging in...' : 'Log In'}
               </button>
             </form>
           </section>
