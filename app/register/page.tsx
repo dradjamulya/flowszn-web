@@ -1,12 +1,108 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, X } from 'lucide-react'
 import { useState } from 'react'
+import type { FormEvent } from 'react'
+import { createClient } from '@/lib/supabase/client'
 
 export default function RegisterPage() {
+  const router = useRouter()
+
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+
+  const [errorMessage, setErrorMessage] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const handleRegister = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    setErrorMessage('')
+    setSuccessMessage('')
+
+    if (!name.trim()) {
+      setErrorMessage('Name is required!')
+      return
+    }
+
+    if (!email.trim()) {
+      setErrorMessage('Email is required!')
+      return
+    }
+
+    if (!password) {
+      setErrorMessage('Password is required!')
+      return
+    }
+
+    if (password.length < 6) {
+      setErrorMessage('Password must be at least 6 characters!')
+      return
+    }
+
+    if (password !== confirmPassword) {
+      setErrorMessage('Password does not match!')
+      return
+    }
+
+    try {
+      setLoading(true)
+
+      const supabase = createClient()
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: name,
+          },
+        },
+      })
+
+      if (error) {
+        setErrorMessage(error.message)
+        return
+      }
+
+      const userId = data.user?.id
+
+      if (!userId) {
+        setErrorMessage('Register failed. User ID not found.')
+        return
+      }
+
+      const { error: profileError } = await supabase.from('profiles').insert({
+        id: userId,
+        full_name: name,
+        phone: '',
+        role: 'user',
+      })
+
+      if (profileError) {
+        setErrorMessage(profileError.message)
+        return
+      }
+
+      setSuccessMessage('Register successful! Redirecting to login...')
+
+      setTimeout(() => {
+        router.push('/login')
+      }, 1000)
+    } catch {
+      setErrorMessage('Something went wrong. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <main
@@ -17,7 +113,6 @@ export default function RegisterPage() {
         background: '#1E1E1A',
       }}
     >
-      {/* Background */}
       <img
         src="/IMG_9600%201.svg"
         alt="Flowszn yoga background"
@@ -32,7 +127,6 @@ export default function RegisterPage() {
         }}
       />
 
-      {/* Dark overlay */}
       <div
         style={{
           position: 'absolute',
@@ -42,7 +136,6 @@ export default function RegisterPage() {
         }}
       />
 
-      {/* Logo atas */}
       <div
         style={{
           position: 'absolute',
@@ -63,7 +156,6 @@ export default function RegisterPage() {
         />
       </div>
 
-      {/* Register wrapper */}
       <div
         style={{
           position: 'relative',
@@ -83,7 +175,6 @@ export default function RegisterPage() {
             maxWidth: '625px',
           }}
         >
-          {/* Close button */}
           <Link
             href="/"
             style={{
@@ -107,7 +198,6 @@ export default function RegisterPage() {
             <X size={25} />
           </Link>
 
-          {/* Register card */}
           <section
             className="register-card"
             style={{
@@ -118,8 +208,7 @@ export default function RegisterPage() {
               boxShadow: '0 18px 50px rgba(0,0,0,0.2)',
             }}
           >
-            <form onSubmit={(event) => event.preventDefault()}>
-              {/* Name */}
+            <form onSubmit={handleRegister}>
               <div style={{ marginBottom: '24px' }}>
                 <label
                   htmlFor="name"
@@ -138,6 +227,12 @@ export default function RegisterPage() {
                   id="name"
                   type="text"
                   placeholder="Insert your name here"
+                  value={name}
+                  onChange={(event) => {
+                    setName(event.target.value)
+                    setErrorMessage('')
+                    setSuccessMessage('')
+                  }}
                   style={{
                     width: '100%',
                     height: '46px',
@@ -153,7 +248,6 @@ export default function RegisterPage() {
                 />
               </div>
 
-              {/* Email */}
               <div style={{ marginBottom: '24px' }}>
                 <label
                   htmlFor="email"
@@ -172,6 +266,12 @@ export default function RegisterPage() {
                   id="email"
                   type="email"
                   placeholder="Insert your email here"
+                  value={email}
+                  onChange={(event) => {
+                    setEmail(event.target.value)
+                    setErrorMessage('')
+                    setSuccessMessage('')
+                  }}
                   style={{
                     width: '100%',
                     height: '46px',
@@ -187,7 +287,6 @@ export default function RegisterPage() {
                 />
               </div>
 
-              {/* Password */}
               <div style={{ marginBottom: '24px' }}>
                 <label
                   htmlFor="password"
@@ -208,6 +307,12 @@ export default function RegisterPage() {
                     className="password-input"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Insert your password here"
+                    value={password}
+                    onChange={(event) => {
+                      setPassword(event.target.value)
+                      setErrorMessage('')
+                      setSuccessMessage('')
+                    }}
                     style={{
                       width: '100%',
                       height: '46px',
@@ -246,8 +351,12 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/* Confirm Password */}
-              <div style={{ marginBottom: '54px' }}>
+              <div
+                style={{
+                  marginBottom:
+                    errorMessage || successMessage ? '14px' : '54px',
+                }}
+              >
                 <label
                   htmlFor="confirm-password"
                   style={{
@@ -267,6 +376,12 @@ export default function RegisterPage() {
                     className="password-input"
                     type={showConfirmPassword ? 'text' : 'password'}
                     placeholder="Re-insert your password here"
+                    value={confirmPassword}
+                    onChange={(event) => {
+                      setConfirmPassword(event.target.value)
+                      setErrorMessage('')
+                      setSuccessMessage('')
+                    }}
                     style={{
                       width: '100%',
                       height: '46px',
@@ -313,7 +428,32 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/* Login link */}
+              {errorMessage && (
+                <p
+                  style={{
+                    color: '#D94436',
+                    fontSize: '16px',
+                    fontFamily: 'var(--font-playfair)',
+                    marginBottom: '22px',
+                  }}
+                >
+                  {errorMessage}
+                </p>
+              )}
+
+              {successMessage && (
+                <p
+                  style={{
+                    color: '#4C7A4C',
+                    fontSize: '16px',
+                    fontFamily: 'var(--font-playfair)',
+                    marginBottom: '22px',
+                  }}
+                >
+                  {successMessage}
+                </p>
+              )}
+
               <p
                 style={{
                   textAlign: 'center',
@@ -335,30 +475,29 @@ export default function RegisterPage() {
                 </Link>
               </p>
 
-              {/* Register button */}
               <button
                 type="submit"
+                disabled={loading}
                 style={{
                   width: '100%',
                   height: '48px',
                   borderRadius: '10px',
                   border: 'none',
-                  background: '#4C4A45',
+                  background: loading ? '#77746D' : '#4C4A45',
                   color: '#F3EEE5',
                   fontSize: '20px',
                   fontFamily: 'var(--font-playfair)',
-                  cursor: 'pointer',
+                  cursor: loading ? 'not-allowed' : 'pointer',
                   boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
                 }}
               >
-                Register
+                {loading ? 'Registering...' : 'Register'}
               </button>
             </form>
           </section>
         </div>
       </div>
 
-      {/* Tagline bawah */}
       <p
         style={{
           position: 'absolute',
@@ -376,7 +515,6 @@ export default function RegisterPage() {
         Find your flow, Feel your season
       </p>
 
-      {/* Responsive + hide browser default password eye */}
       <style>
         {`
           .password-input::-ms-reveal,
