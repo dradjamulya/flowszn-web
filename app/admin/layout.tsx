@@ -2,21 +2,26 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
   LayoutDashboard,
   CalendarDays,
   CreditCard,
   Users,
+  Archive,
   Menu,
   X,
   ArrowLeft,
+  LogOut,
 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/events", label: "Kelola Events", icon: CalendarDays },
   { href: "/admin/payments", label: "Verifikasi Payment", icon: CreditCard },
+  { href: "/admin/archive", label: "Kelola Archive", icon: Archive },
   { href: "/admin/users", label: "Data User", icon: Users },
 ];
 
@@ -27,6 +32,14 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    window.location.href = "/";
+  };
 
   const NavLinks = ({ onClick }: { onClick?: () => void }) => (
     <nav style={{ padding: "8px 12px", flex: 1 }}>
@@ -105,6 +118,28 @@ export default function AdminLayout({
         </div>
 
         <NavLinks />
+
+        <div style={{ padding: "0 12px 8px" }}>
+          <button
+            onClick={handleLogout}
+            style={{
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "10px 12px",
+              borderRadius: "8px",
+              background: "none",
+              border: "1px solid rgba(255,100,100,0.3)",
+              fontSize: "13px",
+              color: "rgba(255,150,150,0.8)",
+              cursor: "pointer",
+              textAlign: "left",
+            }}
+          >
+            <LogOut size={14} /> Logout
+          </button>
+        </div>
 
         {/* Back to Site */}
         <div
@@ -205,6 +240,28 @@ export default function AdminLayout({
             onClick={(e) => e.stopPropagation()}
           >
             <NavLinks onClick={() => setMobileOpen(false)} />
+
+            {/* Logout - di dalam drawer */}
+            <button
+              onClick={handleLogout}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "10px 12px",
+                borderRadius: "8px",
+                marginTop: "8px",
+                background: "none",
+                border: "1px solid rgba(255,100,100,0.3)",
+                fontSize: "13px",
+                color: "rgba(255,150,150,0.8)",
+                cursor: "pointer",
+              }}
+            >
+              <LogOut size={14} /> Logout
+            </button>
+
             <Link
               href="/"
               style={{
@@ -217,7 +274,7 @@ export default function AdminLayout({
                 fontSize: "13px",
                 color: "rgba(255,255,255,0.4)",
                 border: "1px solid rgba(255,255,255,0.1)",
-                marginTop: "auto",
+                marginTop: "8px",
               }}
             >
               <ArrowLeft size={14} /> Kembali ke Website

@@ -45,6 +45,7 @@ export default function AdminDashboard() {
   const [eventOccupancy, setEventOccupancy] = useState<any[]>([]);
   const [userGrowth, setUserGrowth] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const revenueByMonth: Record<string, number> = {};
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -99,7 +100,10 @@ export default function AdminDashboard() {
           .in("id", bookingIds);
 
         revenueThisMonth = (bookings ?? []).reduce((sum, b) => {
-          const price = b.sessions?.price ?? 0;
+          const session = Array.isArray(b.sessions)
+            ? b.sessions[0]
+            : b.sessions;
+          const price = (session as any)?.price ?? 0;
           const pax = b.booking_option === "bestie" ? 2 : 1;
           return sum + price * pax;
         }, 0);
@@ -166,10 +170,11 @@ export default function AdminDashboard() {
         };
       });
 
-      const revenueByMonth: Record<string, number> = {};
       (allBookings ?? []).forEach((b) => {
-        const key = b.created_at?.slice(0, 7);
-        const price = (b as any).sessions?.price ?? 0;
+        const key = (b.created_at ?? "").slice(0, 7);
+        if (!key) return;
+        const session = Array.isArray(b.sessions) ? b.sessions[0] : b.sessions;
+        const price = (session as any)?.price ?? 0;
         const pax = b.booking_option === "bestie" ? 2 : 1;
         revenueByMonth[key] = (revenueByMonth[key] ?? 0) + price * pax;
       });

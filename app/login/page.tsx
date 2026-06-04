@@ -1,75 +1,91 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { Eye, EyeOff, X } from 'lucide-react'
-import { useState } from 'react'
-import type { FormEvent } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Eye, EyeOff, X } from "lucide-react";
+import { useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import type { FormEvent } from "react";
+import { createClient } from "@/lib/supabase/client";
 
-export default function LoginPage() {
-  const router = useRouter()
+function LoginPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect");
 
-  const [showPassword, setShowPassword] = useState(false)
+  const [showPassword, setShowPassword] = useState(false);
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const [errorMessage, setErrorMessage] = useState('')
-  const [successMessage, setSuccessMessage] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
+    event.preventDefault();
 
-    setErrorMessage('')
-    setSuccessMessage('')
+    setErrorMessage("");
+    setSuccessMessage("");
 
     if (!email.trim()) {
-      setErrorMessage('Email is required!')
-      return
+      setErrorMessage("Email is required!");
+      return;
     }
 
     if (!password) {
-      setErrorMessage('Password is required!')
-      return
+      setErrorMessage("Password is required!");
+      return;
     }
 
     try {
-      setLoading(true)
+      setLoading(true);
 
-      const supabase = createClient()
+      const supabase = createClient();
 
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
-      })
+      });
 
       if (error) {
-        setErrorMessage(error.message)
-        return
+        setErrorMessage(error.message);
+        return;
       }
 
-      setSuccessMessage('Login successful! Redirecting...')
+      const {
+        data: { user: loggedInUser },
+      } = await supabase.auth.getUser();
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", loggedInUser?.id ?? "")
+        .single();
+
+      setSuccessMessage("Login successful! Redirecting...");
 
       setTimeout(() => {
-        router.push('/my-szn')
-        router.refresh()
-      }, 800)
+        if (profile?.role === "admin") {
+          window.location.href = "/admin";
+        } else {
+          window.location.href = redirectTo ?? "/my-szn";
+        }
+      }, 800);
     } catch {
-      setErrorMessage('Something went wrong. Please try again.')
+      setErrorMessage("Something went wrong. Please try again.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <main
       style={{
-        position: 'relative',
-        minHeight: '100vh',
-        overflow: 'hidden',
-        background: '#1E1E1A',
+        position: "relative",
+        minHeight: "100vh",
+        overflow: "hidden",
+        background: "#1E1E1A",
       }}
     >
       {/* Background */}
@@ -77,12 +93,12 @@ export default function LoginPage() {
         src="/IMG_9600%201.svg"
         alt="Flowszn yoga background"
         style={{
-          position: 'absolute',
+          position: "absolute",
           inset: 0,
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          objectPosition: 'center center',
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          objectPosition: "center center",
           zIndex: 0,
         }}
       />
@@ -90,9 +106,9 @@ export default function LoginPage() {
       {/* Dark overlay */}
       <div
         style={{
-          position: 'absolute',
+          position: "absolute",
           inset: 0,
-          background: 'rgba(30, 30, 26, 0.62)',
+          background: "rgba(30, 30, 26, 0.62)",
           zIndex: 1,
         }}
       />
@@ -100,10 +116,10 @@ export default function LoginPage() {
       {/* Logo atas */}
       <div
         style={{
-          position: 'absolute',
-          top: '34px',
-          left: '50%',
-          transform: 'translateX(-50%)',
+          position: "absolute",
+          top: "34px",
+          left: "50%",
+          transform: "translateX(-50%)",
           zIndex: 3,
         }}
       >
@@ -111,9 +127,9 @@ export default function LoginPage() {
           src="/LOGO%20FLOWSZN%20PUTIH.svg"
           alt="Flowszn logo"
           style={{
-            width: '78px',
-            height: 'auto',
-            display: 'block',
+            width: "78px",
+            height: "auto",
+            display: "block",
           }}
         />
       </div>
@@ -121,42 +137,42 @@ export default function LoginPage() {
       {/* Login wrapper */}
       <div
         style={{
-          position: 'relative',
+          position: "relative",
           zIndex: 2,
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '120px 20px 100px',
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "120px 20px 100px",
         }}
       >
         <div
           className="login-box-wrapper"
           style={{
-            position: 'relative',
-            width: '100%',
-            maxWidth: '625px',
+            position: "relative",
+            width: "100%",
+            maxWidth: "625px",
           }}
         >
           {/* Close button */}
           <Link
             href="/"
             style={{
-              position: 'absolute',
-              top: '-26px',
-              left: '-24px',
-              width: '52px',
-              height: '52px',
-              borderRadius: '999px',
-              border: '1.5px solid #F3EEE5',
-              background: '#4C4A45',
-              color: '#F3EEE5',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              position: "absolute",
+              top: "-26px",
+              left: "-24px",
+              width: "52px",
+              height: "52px",
+              borderRadius: "999px",
+              border: "1.5px solid #F3EEE5",
+              background: "#4C4A45",
+              color: "#F3EEE5",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
               zIndex: 5,
-              textDecoration: 'none',
-              boxShadow: '0 6px 16px rgba(0,0,0,0.22)',
+              textDecoration: "none",
+              boxShadow: "0 6px 16px rgba(0,0,0,0.22)",
             }}
           >
             <X size={25} />
@@ -166,24 +182,24 @@ export default function LoginPage() {
           <section
             className="login-card"
             style={{
-              width: '100%',
-              background: '#F3EEE5',
-              borderRadius: '18px',
-              padding: '56px 64px 70px',
-              boxShadow: '0 18px 50px rgba(0,0,0,0.2)',
+              width: "100%",
+              background: "#F3EEE5",
+              borderRadius: "18px",
+              padding: "56px 64px 70px",
+              boxShadow: "0 18px 50px rgba(0,0,0,0.2)",
             }}
           >
             <form onSubmit={handleLogin}>
               {/* Email */}
-              <div style={{ marginBottom: '24px' }}>
+              <div style={{ marginBottom: "24px" }}>
                 <label
                   htmlFor="email"
                   style={{
-                    display: 'block',
-                    marginBottom: '12px',
-                    fontSize: '18px',
-                    color: '#1E1E1A',
-                    fontFamily: 'var(--font-playfair)',
+                    display: "block",
+                    marginBottom: "12px",
+                    fontSize: "18px",
+                    color: "#1E1E1A",
+                    fontFamily: "var(--font-playfair)",
                   }}
                 >
                   Email
@@ -195,83 +211,85 @@ export default function LoginPage() {
                   placeholder="Insert your email here"
                   value={email}
                   onChange={(event) => {
-                    setEmail(event.target.value)
-                    setErrorMessage('')
-                    setSuccessMessage('')
+                    setEmail(event.target.value);
+                    setErrorMessage("");
+                    setSuccessMessage("");
                   }}
                   style={{
-                    width: '100%',
-                    height: '46px',
-                    borderRadius: '10px',
-                    border: '1px solid #5F5D58',
-                    background: 'transparent',
-                    padding: '0 14px',
-                    outline: 'none',
-                    fontSize: '18px',
-                    color: '#1E1E1A',
-                    fontFamily: 'var(--font-playfair)',
+                    width: "100%",
+                    height: "46px",
+                    borderRadius: "10px",
+                    border: "1px solid #5F5D58",
+                    background: "transparent",
+                    padding: "0 14px",
+                    outline: "none",
+                    fontSize: "18px",
+                    color: "#1E1E1A",
+                    fontFamily: "var(--font-playfair)",
                   }}
                 />
               </div>
 
               {/* Password */}
-              <div style={{ marginBottom: '10px' }}>
+              <div style={{ marginBottom: "10px" }}>
                 <label
                   htmlFor="password"
                   style={{
-                    display: 'block',
-                    marginBottom: '12px',
-                    fontSize: '18px',
-                    color: '#1E1E1A',
-                    fontFamily: 'var(--font-playfair)',
+                    display: "block",
+                    marginBottom: "12px",
+                    fontSize: "18px",
+                    color: "#1E1E1A",
+                    fontFamily: "var(--font-playfair)",
                   }}
                 >
                   Password
                 </label>
 
-                <div style={{ position: 'relative' }}>
+                <div style={{ position: "relative" }}>
                   <input
                     id="password"
                     className="password-input"
-                    type={showPassword ? 'text' : 'password'}
+                    type={showPassword ? "text" : "password"}
                     placeholder="Insert your password here"
                     value={password}
                     onChange={(event) => {
-                      setPassword(event.target.value)
-                      setErrorMessage('')
-                      setSuccessMessage('')
+                      setPassword(event.target.value);
+                      setErrorMessage("");
+                      setSuccessMessage("");
                     }}
                     style={{
-                      width: '100%',
-                      height: '46px',
-                      borderRadius: '10px',
-                      border: '1px solid #5F5D58',
-                      background: 'transparent',
-                      padding: '0 48px 0 14px',
-                      outline: 'none',
-                      fontSize: '18px',
-                      color: '#1E1E1A',
-                      fontFamily: 'var(--font-playfair)',
+                      width: "100%",
+                      height: "46px",
+                      borderRadius: "10px",
+                      border: "1px solid #5F5D58",
+                      background: "transparent",
+                      padding: "0 48px 0 14px",
+                      outline: "none",
+                      fontSize: "18px",
+                      color: "#1E1E1A",
+                      fontFamily: "var(--font-playfair)",
                     }}
                   />
 
                   <button
                     type="button"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
                     onClick={() => setShowPassword(!showPassword)}
                     style={{
-                      position: 'absolute',
-                      top: '50%',
-                      right: '14px',
-                      transform: 'translateY(-50%)',
-                      background: 'transparent',
-                      border: 'none',
-                      color: '#4C4A45',
-                      cursor: 'pointer',
+                      position: "absolute",
+                      top: "50%",
+                      right: "14px",
+                      transform: "translateY(-50%)",
+                      background: "transparent",
+                      border: "none",
+                      color: "#4C4A45",
+                      cursor: "pointer",
                       padding: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
                     }}
                   >
                     {showPassword ? <EyeOff size={22} /> : <Eye size={22} />}
@@ -283,16 +301,16 @@ export default function LoginPage() {
               <div
                 style={{
                   marginBottom:
-                    errorMessage || successMessage ? '18px' : '56px',
+                    errorMessage || successMessage ? "18px" : "56px",
                 }}
               >
                 <Link
                   href="/forgot-password"
                   style={{
-                    color: '#1E1E1A',
-                    fontSize: '16px',
-                    textDecoration: 'underline',
-                    fontFamily: 'var(--font-playfair)',
+                    color: "#1E1E1A",
+                    fontSize: "16px",
+                    textDecoration: "underline",
+                    fontFamily: "var(--font-playfair)",
                   }}
                 >
                   Forgot password
@@ -303,10 +321,10 @@ export default function LoginPage() {
               {errorMessage && (
                 <p
                   style={{
-                    color: '#D94436',
-                    fontSize: '16px',
-                    fontFamily: 'var(--font-playfair)',
-                    marginBottom: '28px',
+                    color: "#D94436",
+                    fontSize: "16px",
+                    fontFamily: "var(--font-playfair)",
+                    marginBottom: "28px",
                   }}
                 >
                   {errorMessage}
@@ -316,10 +334,10 @@ export default function LoginPage() {
               {successMessage && (
                 <p
                   style={{
-                    color: '#4C7A4C',
-                    fontSize: '16px',
-                    fontFamily: 'var(--font-playfair)',
-                    marginBottom: '28px',
+                    color: "#4C7A4C",
+                    fontSize: "16px",
+                    fontFamily: "var(--font-playfair)",
+                    marginBottom: "28px",
                   }}
                 >
                   {successMessage}
@@ -329,19 +347,19 @@ export default function LoginPage() {
               {/* Register */}
               <p
                 style={{
-                  textAlign: 'center',
-                  marginBottom: '10px',
-                  color: '#1E1E1A',
-                  fontSize: '17px',
-                  fontFamily: 'var(--font-playfair)',
+                  textAlign: "center",
+                  marginBottom: "10px",
+                  color: "#1E1E1A",
+                  fontSize: "17px",
+                  fontFamily: "var(--font-playfair)",
                 }}
               >
-                Not a Flowies yet?{' '}
+                Not a Flowies yet?{" "}
                 <Link
                   href="/register"
                   style={{
-                    color: '#1E1E1A',
-                    textDecoration: 'underline',
+                    color: "#1E1E1A",
+                    textDecoration: "underline",
                   }}
                 >
                   Register here
@@ -353,19 +371,19 @@ export default function LoginPage() {
                 type="submit"
                 disabled={loading}
                 style={{
-                  width: '100%',
-                  height: '48px',
-                  borderRadius: '10px',
-                  border: 'none',
-                  background: loading ? '#77746D' : '#4C4A45',
-                  color: '#F3EEE5',
-                  fontSize: '20px',
-                  fontFamily: 'var(--font-playfair)',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+                  width: "100%",
+                  height: "48px",
+                  borderRadius: "10px",
+                  border: "none",
+                  background: loading ? "#77746D" : "#4C4A45",
+                  color: "#F3EEE5",
+                  fontSize: "20px",
+                  fontFamily: "var(--font-playfair)",
+                  cursor: loading ? "not-allowed" : "pointer",
+                  boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
                 }}
               >
-                {loading ? 'Logging in...' : 'Log In'}
+                {loading ? "Logging in..." : "Log In"}
               </button>
             </form>
           </section>
@@ -375,16 +393,16 @@ export default function LoginPage() {
       {/* Tagline bawah */}
       <p
         style={{
-          position: 'absolute',
-          bottom: '58px',
-          left: '50%',
-          transform: 'translateX(-50%)',
+          position: "absolute",
+          bottom: "58px",
+          left: "50%",
+          transform: "translateX(-50%)",
           zIndex: 3,
-          color: '#F3EEE5',
-          fontSize: '18px',
-          fontStyle: 'italic',
-          fontFamily: 'var(--font-playfair)',
-          whiteSpace: 'nowrap',
+          color: "#F3EEE5",
+          fontSize: "18px",
+          fontStyle: "italic",
+          fontFamily: "var(--font-playfair)",
+          whiteSpace: "nowrap",
         }}
       >
         Find your flow, Feel your season
@@ -432,5 +450,13 @@ export default function LoginPage() {
         `}
       </style>
     </main>
-  )
+  );
+}
+
+export default function LoginPageWrapper() {
+  return (
+    <Suspense>
+      <LoginPage />
+    </Suspense>
+  );
 }

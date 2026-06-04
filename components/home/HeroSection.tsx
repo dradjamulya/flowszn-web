@@ -1,10 +1,66 @@
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
 
-export default function HeroSection() {
+export default async function HeroSection() {
+  const supabase = await createClient();
+
+  // Fetch event terdekat yang on_sale atau upcoming
+  const { data: upcomingEvents } = await supabase
+    .from("events")
+    .select(
+      `
+    id, title, thumbnail_url,
+    sessions ( date_time )
+  `,
+    )
+    .in("status", ["on_sale", "upcoming"])
+    .order("created_at", { ascending: true });
+
+  // Cari event dengan session terdekat dari sekarang
+  const now = new Date();
+  let nextEvent: {
+    id: string;
+    title: string;
+    dateLabel: string;
+    thumbnail_url: string | null;
+  } | null = null;
+
+  if (upcomingEvents) {
+    for (const event of upcomingEvents) {
+      const session = (event.sessions as any[])?.[0];
+      if (!session?.date_time) continue;
+      const sessionDate = new Date(session.date_time);
+      if (sessionDate >= now) {
+        const diff = sessionDate.getTime() - now.getTime();
+        const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+        const dateLabel =
+          days === 0
+            ? "Today"
+            : days === 1
+              ? "Tomorrow"
+              : days <= 7
+                ? "This Week"
+                : days <= 14
+                  ? "Next Week"
+                  : sessionDate.toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    });
+
+        nextEvent = {
+          id: event.id,
+          title: event.title,
+          dateLabel,
+          thumbnail_url: event.thumbnail_url ?? null,
+        };
+        break;
+      }
+    }
+  }
+
   return (
     <section style={{ padding: "40px 0 64px", background: "#EFEDE8" }}>
       <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 48px" }}>
-        {/* Layout */}
         <div
           style={{ display: "flex", flexDirection: "column", gap: "40px" }}
           className="hero-layout"
@@ -120,7 +176,6 @@ export default function HeroSection() {
                 boxShadow: "0 16px 48px rgba(0,0,0,0.2)",
               }}
             >
-              {/* Foto miring */}
               <div
                 style={{
                   borderRadius: "18px",
@@ -129,66 +184,76 @@ export default function HeroSection() {
                   transform: "rotate(1.5deg)",
                 }}
               >
-                {/* Ganti src ini dengan foto asli nanti */}
                 <img
-                  src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&q=80"
+                  src={
+                    nextEvent?.thumbnail_url ||
+                    "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&q=80"
+                  }
                   alt="flowszn yoga class"
                   style={{ width: "100%", height: "100%", objectFit: "cover" }}
                 />
               </div>
 
-              {/* Floating Pill */}
-              <div
-                style={{
-                  position: "absolute",
-                  bottom: "24px",
-                  left: "24px",
-                  borderRadius: "999px",
-                  padding: "10px 16px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  background: "rgba(255,255,255,0.95)",
-                  backdropFilter: "blur(8px)",
-                  boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
-                }}
-              >
-                <div
-                  style={{
-                    width: "32px",
-                    height: "32px",
-                    borderRadius: "50%",
-                    background: "var(--bg-cream)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "16px",
-                  }}
+              {/* Floating Pill — event terdekat dari database */}
+              {nextEvent && (
+                <Link
+                  href={`/book/${nextEvent.id}`}
+                  style={{ textDecoration: "none" }}
                 >
-                  🧘
-                </div>
-                <div>
-                  <p
+                  <div
                     style={{
-                      fontSize: "13px",
-                      fontWeight: "600",
-                      color: "var(--text-primary)",
-                      lineHeight: 1.2,
+                      position: "absolute",
+                      bottom: "24px",
+                      left: "24px",
+                      borderRadius: "999px",
+                      padding: "10px 16px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      background: "rgba(255,255,255,0.95)",
+                      backdropFilter: "blur(8px)",
+                      boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+                      cursor: "pointer",
                     }}
                   >
-                    Morning Vinyasa
-                  </p>
-                  <p
-                    style={{
-                      fontSize: "11px",
-                      color: "var(--text-secondary)",
-                      lineHeight: 1.2,
-                    }}
-                  >
-                    Next Week
-                  </p>
-                </div>
-              </div>
+                    <div
+                      style={{
+                        width: "32px",
+                        height: "32px",
+                        borderRadius: "50%",
+                        background: "var(--bg-cream)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "16px",
+                      }}
+                    >
+                      🧘
+                    </div>
+                    <div>
+                      <p
+                        style={{
+                          fontSize: "13px",
+                          fontWeight: "600",
+                          color: "var(--text-primary)",
+                          lineHeight: 1.2,
+                        }}
+                      >
+                        {nextEvent.title}
+                      </p>
+                      <p
+                        style={{
+                          fontSize: "11px",
+                          color: "var(--text-secondary)",
+                          lineHeight: 1.2,
+                        }}
+                      >
+                        {nextEvent.dateLabel}
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+              )}
             </div>
           </div>
         </div>

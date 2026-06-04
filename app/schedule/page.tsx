@@ -56,7 +56,7 @@ export default function SchedulePage() {
   const router = useRouter();
   const [showModal, setShowModal] = useState(true);
   const [search, setSearch] = useState("");
-  const [monthIndex, setMonthIndex] = useState(4);
+  const [monthIndex, setMonthIndex] = useState(new Date().getMonth());
   const [showAll, setShowAll] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -67,6 +67,7 @@ export default function SchedulePage() {
   });
   const [events, setEvents] = useState<any[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -85,12 +86,28 @@ export default function SchedulePage() {
           )
         `,
         )
-        .eq("status", "on_sale");
+        .in("status", ["on_sale", "upcoming"]);
+
+      console.log("events:", data, "error:", error); // tambah ini
 
       if (!error && data) setEvents(data);
       setLoadingEvents(false);
     };
     fetchEvents();
+    const fetchRole = async () => {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+      if (profile) setUserRole(profile.role);
+    };
+    fetchRole();
   }, []);
 
   const toggle = (key: string, val: string) => {
@@ -153,12 +170,23 @@ export default function SchedulePage() {
     </div>
   );
 
-  const filteredEvents = events.filter(
-    (e) =>
-      search === "" ||
-      e.title?.toLowerCase().includes(search.toLowerCase()) ||
-      e.instructor_name?.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filteredEvents = events.filter((e) => {
+  // Filter search
+  const matchSearch =
+    search === "" ||
+    e.title?.toLowerCase().includes(search.toLowerCase()) ||
+    e.instructor_name?.toLowerCase().includes(search.toLowerCase());
+
+  // Filter bulan — skip kalau showAll dicentang
+  const session = e.sessions?.[0];
+  const matchMonth = showAll
+    ? true
+    : session?.date_time
+      ? new Date(session.date_time).getMonth() === monthIndex
+      : false;
+
+  return matchSearch && matchMonth;
+});
 
   return (
     <main
@@ -677,6 +705,35 @@ export default function SchedulePage() {
                       </div>
                     </div>
 
+                    {/* Price */}
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: "12px",
+                          color: "var(--text-secondary)",
+                        }}
+                      >
+                        Price
+                      </span>
+                      <span
+                        style={{
+                          fontSize: "13px",
+                          fontWeight: "600",
+                          color: "var(--text-primary)",
+                        }}
+                      >
+                        {session?.price
+                          ? `Rp ${session.price.toLocaleString("id-ID")}`
+                          : "—"}
+                      </span>
+                    </div>
+
                     {/* Spots */}
                     <div>
                       <div
@@ -782,23 +839,43 @@ export default function SchedulePage() {
                     )}
 
                     {/* Book Now */}
-                    <button
-                      onClick={() => router.push(`/book/${event.id}`)}
-                      style={{
-                        width: "100%",
-                        padding: "12px",
-                        borderRadius: "8px",
-                        border: "none",
-                        background: "#5A5A55",
-                        color: "white",
-                        fontSize: "13px",
-                        fontWeight: "500",
-                        cursor: "pointer",
-                        marginTop: "auto",
-                      }}
-                    >
-                      Book Now
-                    </button>
+                    {userRole === "admin" ? (
+                      <button
+                        onClick={() => router.push("/admin/events")}
+                        style={{
+                          width: "100%",
+                          padding: "12px",
+                          borderRadius: "8px",
+                          border: "1.5px solid #5A5A55",
+                          background: "transparent",
+                          color: "#5A5A55",
+                          fontSize: "13px",
+                          fontWeight: "500",
+                          cursor: "pointer",
+                          marginTop: "auto",
+                        }}
+                      >
+                        + Tambah Event
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => router.push(`/book/${event.id}`)}
+                        style={{
+                          width: "100%",
+                          padding: "12px",
+                          borderRadius: "8px",
+                          border: "none",
+                          background: "#5A5A55",
+                          color: "white",
+                          fontSize: "13px",
+                          fontWeight: "500",
+                          cursor: "pointer",
+                          marginTop: "auto",
+                        }}
+                      >
+                        Book Now
+                      </button>
+                    )}
                   </div>
                 </div>
               );
