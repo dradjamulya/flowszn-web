@@ -27,10 +27,15 @@ const emptyForm = {
   instructor_name: "",
   instructor_bio: "",
   thumbnail_url: "",
-  status: "upcoming",
-  level: "All Levels",
+  status: "upcoming" as string,
+  level: "All Levels" as string,
   tag: "",
   benefits: "",
+  coming_soon: false,
+  session_date: "",
+  session_time: "",
+  session_price: "",
+  session_total_slots: "",
 };
 
 export default function AdminEventsPage() {
@@ -68,10 +73,18 @@ export default function AdminEventsPage() {
     setDialogOpen(true);
   };
 
-  const openEdit = (event: any) => {
+  const openEdit = async (event: any) => {
     setSelectedEvent(event);
     setThumbnailFile(null);
     setThumbnailPreview(event.thumbnail_url ?? "");
+
+    const { data: sessions } = await supabase
+      .from("sessions")
+      .select("*")
+      .eq("event_id", event.id)
+      .limit(1);
+    const session = sessions?.[0];
+
     setForm({
       title: event.title ?? "",
       description: event.description ?? "",
@@ -82,7 +95,19 @@ export default function AdminEventsPage() {
       status: event.status ?? "upcoming",
       level: event.level ?? "All Levels",
       tag: event.tag ?? "",
-      benefits: event.benefits ? event.benefits.join(", ") : "",
+      benefits: Array.isArray(event.benefits) ? event.benefits.join(", ") : "",
+      coming_soon: event.coming_soon ?? false,
+      session_date: session?.date_time
+        ? new Date(session.date_time).toISOString().split("T")[0]
+        : "",
+      session_time: session?.date_time
+        ? new Date(session.date_time).toLocaleTimeString("en-GB", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        : "",
+      session_price: session?.price?.toString() ?? "",
+      session_total_slots: session?.total_slots?.toString() ?? "",
     });
     setDialogOpen(true);
   };
@@ -92,12 +117,24 @@ export default function AdminEventsPage() {
       alert("Judul, lokasi, dan nama instruktur wajib diisi.");
       return;
     }
-    if (!selectedEvent && !thumbnailFile) {
+    if (!selectedEvent && !thumbnailFile && !form.coming_soon) {
       alert("Thumbnail wajib diupload.");
       return;
     }
 
+    if (form.session_date && !form.session_time) {
+      alert("Jam sesi wajib diisi jika tanggal sudah dipilih.");
+      setSaving(false);
+      return;
+    }
+
     setSaving(true);
+
+    // Debug log — PERTAMA sebelum apapun
+    console.log("=== handleSave dipanggil ===");
+    console.log("session_date:", form.session_date);
+    console.log("session_time:", form.session_time);
+    console.log("selectedEvent:", selectedEvent?.id);
 
     let thumbnailUrl = form.thumbnail_url;
 
@@ -127,8 +164,8 @@ export default function AdminEventsPage() {
       location: form.location,
       instructor_name: form.instructor_name,
       instructor_bio: form.instructor_bio,
-      thumbnail_url: thumbnailUrl,
-      status: form.status,
+      thumbnail_url: thumbnailUrl || null,
+      status: form.coming_soon ? "coming_soon" : form.status,
       level: form.level,
       tag: form.tag || null,
       benefits: form.benefits
@@ -137,12 +174,77 @@ export default function AdminEventsPage() {
             .map((b: string) => b.trim())
             .filter(Boolean)
         : [],
+      coming_soon: form.coming_soon,
     };
 
+    let eventId = selectedEvent?.id;
+
     if (selectedEvent) {
-      await supabase.from("events").update(payload).eq("id", selectedEvent.id);
+      const { error: updateError } = await supabase
+        .from("events")
+        .update(payload)
+        .eq("id", selectedEvent.id);
+      console.log("update event error:", updateError);
     } else {
-      await supabase.from("events").insert(payload);
+      const { data: newEvent, error: insertError } = await supabase
+        .from("events")
+        .insert(payload)
+        .select()
+        .single();
+      console.log("insert event:", newEvent?.id, "error:", insertError);
+      eventId = newEvent?.id;
+    }
+
+    console.log("eventId setelah upsert event:", eventId);
+
+    // Insert/update session
+    if (eventId && form.session_date && form.session_time) {
+      const dateTime = new Date(
+        `${form.session_date}T${form.session_time}:00`,
+      ).toISOString();
+      console.log("dateTime yang akan disimpan:", dateTime);
+
+      const { data: existingSessions, error: fetchErr } = await supabase
+        .from("sessions")
+        .select("id")
+        .eq("event_id", eventId)
+        .limit(1);
+
+      console.log(
+        "existing sessions:",
+        existingSessions,
+        "fetchErr:",
+        fetchErr,
+      );
+
+      if (existingSessions && existingSessions.length > 0) {
+        const { error: updateSessionErr } = await supabase
+          .from("sessions")
+          .update({
+            date_time: dateTime,
+            price: Number(form.session_price) || 0,
+            total_slots: Number(form.session_total_slots) || 0,
+          })
+          .eq("id", existingSessions[0].id);
+        console.log("update session error:", updateSessionErr);
+      } else {
+        const { error: insertSessionErr } = await supabase
+          .from("sessions")
+          .insert({
+            event_id: eventId,
+            date_time: dateTime,
+            price: Number(form.session_price) || 0,
+            total_slots: Number(form.session_total_slots) || 0,
+            booked_slots: 0,
+          });
+        console.log("insert session error:", insertSessionErr);
+      }
+    } else {
+      console.log("SKIP session — kondisi tidak terpenuhi:", {
+        eventId,
+        date: form.session_date,
+        time: form.session_time,
+      });
     }
 
     setSaving(false);
@@ -152,6 +254,8 @@ export default function AdminEventsPage() {
 
   const handleDelete = async () => {
     if (!selectedEvent) return;
+    // Hapus sessions dulu sebelum event
+    await supabase.from("sessions").delete().eq("event_id", selectedEvent.id);
     await supabase.from("events").delete().eq("id", selectedEvent.id);
     setDeleteDialogOpen(false);
     fetchEvents();
@@ -162,6 +266,7 @@ export default function AdminEventsPage() {
     on_sale: "#DCF0E0",
     sold_out: "#FFE0E0",
     completed: "#E8E0F0",
+    coming_soon: "#FFF3DC",
   };
 
   const statusTextColor: Record<string, string> = {
@@ -169,6 +274,7 @@ export default function AdminEventsPage() {
     on_sale: "#2D7A3A",
     sold_out: "#A03030",
     completed: "#6040A0",
+    coming_soon: "#A06010",
   };
 
   const inputStyle = {
@@ -177,6 +283,42 @@ export default function AdminEventsPage() {
     marginTop: "6px",
     fontSize: "13px",
   };
+
+  const CheckboxUI = ({
+    checked,
+    onClick,
+  }: {
+    checked: boolean;
+    onClick: () => void;
+  }) => (
+    <div
+      onClick={onClick}
+      style={{
+        width: "18px",
+        height: "18px",
+        borderRadius: "4px",
+        flexShrink: 0,
+        border: "1.5px solid #D0CCC4",
+        background: checked ? "var(--text-primary)" : "transparent",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        cursor: "pointer",
+      }}
+    >
+      {checked && (
+        <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+          <path
+            d="M1 4L3.5 6.5L9 1"
+            stroke="white"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      )}
+    </div>
+  );
 
   return (
     <div>
@@ -243,7 +385,6 @@ export default function AdminEventsPage() {
             borderRadius: "16px",
             padding: "60px",
             textAlign: "center",
-            boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
             border: "1px solid var(--border)",
           }}
         >
@@ -302,15 +443,37 @@ export default function AdminEventsPage() {
                   )}
                 </div>
                 <div>
-                  <p
+                  <div
                     style={{
-                      fontSize: "14px",
-                      fontWeight: "600",
-                      color: "var(--text-primary)",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
                     }}
                   >
-                    {event.title}
-                  </p>
+                    <p
+                      style={{
+                        fontSize: "14px",
+                        fontWeight: "600",
+                        color: "var(--text-primary)",
+                      }}
+                    >
+                      {event.title}
+                    </p>
+                    {event.coming_soon && (
+                      <span
+                        style={{
+                          fontSize: "10px",
+                          padding: "2px 8px",
+                          borderRadius: "999px",
+                          background: "#FFF3DC",
+                          color: "#A06010",
+                          fontWeight: "500",
+                        }}
+                      >
+                        Coming Soon
+                      </span>
+                    )}
+                  </div>
                   <p
                     style={{
                       fontSize: "12px",
@@ -417,65 +580,98 @@ export default function AdminEventsPage() {
               paddingTop: "8px",
             }}
           >
-            {/* Thumbnail Upload */}
-            <div>
-              <Label style={{ fontSize: "13px", fontWeight: "600" }}>
-                Thumbnail *
-              </Label>
-              <div style={{ marginTop: "8px" }}>
-                {thumbnailPreview && (
-                  <div
-                    style={{
-                      width: "100%",
-                      aspectRatio: "16/9",
-                      borderRadius: "8px",
-                      overflow: "hidden",
-                      marginBottom: "10px",
-                      background: "#E8E4DC",
-                      border: "1.5px solid #D0CCC4",
-                    }}
-                  >
-                    <img
-                      src={thumbnailPreview}
-                      alt="preview"
+            {/* Coming Soon Toggle */}
+            <div
+              onClick={() =>
+                setForm({ ...form, coming_soon: !form.coming_soon })
+              }
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                cursor: "pointer",
+              }}
+            >
+              <CheckboxUI
+                checked={form.coming_soon}
+                onClick={() =>
+                  setForm({ ...form, coming_soon: !form.coming_soon })
+                }
+              />
+              <span
+                style={{
+                  fontSize: "13px",
+                  fontWeight: "600",
+                  color: "var(--text-primary)",
+                }}
+              >
+                Tandai sebagai Coming Soon
+              </span>
+            </div>
+
+            {/* Thumbnail */}
+            {!form.coming_soon && (
+              <div>
+                <Label style={{ fontSize: "13px", fontWeight: "600" }}>
+                  Thumbnail *
+                </Label>
+                <div style={{ marginTop: "8px" }}>
+                  {thumbnailPreview && (
+                    <div
                       style={{
                         width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
+                        aspectRatio: "16/9",
+                        borderRadius: "8px",
+                        overflow: "hidden",
+                        marginBottom: "10px",
+                        background: "#E8E4DC",
+                        border: "1.5px solid #D0CCC4",
+                      }}
+                    >
+                      <img
+                        src={thumbnailPreview}
+                        alt="preview"
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                        }}
+                      />
+                    </div>
+                  )}
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      padding: "12px 16px",
+                      borderRadius: "8px",
+                      border: "1.5px dashed #1C1C1A",
+                      cursor: "pointer",
+                      fontSize: "13px",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: "none" }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setThumbnailFile(file);
+                          setThumbnailPreview(URL.createObjectURL(file));
+                        }
                       }}
                     />
-                  </div>
-                )}
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    padding: "12px 16px",
-                    borderRadius: "8px",
-                    border: "1.5px dashed #1C1C1A",
-                    cursor: "pointer",
-                    fontSize: "13px",
-                    color: "var(--text-secondary)",
-                  }}
-                >
-                  <input
-                    type="file"
-                    accept="image/*"
-                    style={{ display: "none" }}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setThumbnailFile(file);
-                        setThumbnailPreview(URL.createObjectURL(file));
-                      }
-                    }}
-                  />
-                  📷{" "}
-                  {thumbnailFile ? thumbnailFile.name : "Pilih foto thumbnail"}
-                </label>
+                    📷{" "}
+                    {thumbnailFile
+                      ? thumbnailFile.name
+                      : "Pilih foto thumbnail"}
+                  </label>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Judul */}
             <div>
@@ -545,8 +741,10 @@ export default function AdminEventsPage() {
                   Level
                 </Label>
                 <Select
-                  value={form.level}
-                  onValueChange={(val) => setForm({ ...form, level: val })}
+                  value={form.level as string}
+                  onValueChange={(val) =>
+                    setForm({ ...form, level: val })
+                  }
                 >
                   <SelectTrigger style={{ ...inputStyle, width: "100%" }}>
                     <SelectValue />
@@ -590,8 +788,10 @@ export default function AdminEventsPage() {
                   Status
                 </Label>
                 <Select
-                  value={form.status}
-                  onValueChange={(val) => setForm({ ...form, status: val })}
+                  value={form.status as string}
+                  onValueChange={(val) =>
+                    setForm({ ...form, status: val })
+                  }
                 >
                   <SelectTrigger style={{ ...inputStyle, width: "100%" }}>
                     <SelectValue />
@@ -601,6 +801,7 @@ export default function AdminEventsPage() {
                     <SelectItem value="on_sale">On Sale</SelectItem>
                     <SelectItem value="sold_out">Sold Out</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="coming_soon">Coming Soon</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -647,6 +848,87 @@ export default function AdminEventsPage() {
                 rows={2}
                 style={{ ...inputStyle, resize: "vertical" }}
               />
+            </div>
+
+            {/* Jadwal Sesi */}
+            <div
+              style={{
+                borderTop: "1px solid #E8E4DC",
+                paddingTop: "20px",
+              }}
+            >
+              <p
+                style={{
+                  fontSize: "13px",
+                  fontWeight: "600",
+                  color: "var(--text-primary)",
+                  marginBottom: "16px",
+                }}
+              >
+                Jadwal Sesi
+              </p>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+                  gap: "16px",
+                }}
+              >
+                <div>
+                  <Label style={{ fontSize: "13px", fontWeight: "600" }}>
+                    Tanggal
+                  </Label>
+                  <Input
+                    type="date"
+                    value={form.session_date}
+                    onChange={(e) =>
+                      setForm({ ...form, session_date: e.target.value })
+                    }
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <Label style={{ fontSize: "13px", fontWeight: "600" }}>
+                    Jam
+                  </Label>
+                  <Input
+                    type="time"
+                    value={form.session_time}
+                    onChange={(e) =>
+                      setForm({ ...form, session_time: e.target.value })
+                    }
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <Label style={{ fontSize: "13px", fontWeight: "600" }}>
+                    Harga (Rp)
+                  </Label>
+                  <Input
+                    type="number"
+                    value={form.session_price}
+                    onChange={(e) =>
+                      setForm({ ...form, session_price: e.target.value })
+                    }
+                    placeholder="150000"
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <Label style={{ fontSize: "13px", fontWeight: "600" }}>
+                    Total Slots
+                  </Label>
+                  <Input
+                    type="number"
+                    value={form.session_total_slots}
+                    onChange={(e) =>
+                      setForm({ ...form, session_total_slots: e.target.value })
+                    }
+                    placeholder="30"
+                    style={inputStyle}
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
@@ -718,8 +1000,7 @@ export default function AdminEventsPage() {
             <strong style={{ color: "var(--text-primary)" }}>
               {selectedEvent?.title}
             </strong>{" "}
-            akan dihapus permanen beserta semua sesinya. Tindakan ini tidak bisa
-            dibatalkan.
+            akan dihapus permanen. Tindakan ini tidak bisa dibatalkan.
           </p>
           <DialogFooter style={{ marginTop: "24px", gap: "10px" }}>
             <button

@@ -21,20 +21,44 @@ export default function AdminPaymentsPage() {
 
   const fetchPayments = async () => {
     setLoading(true);
-    const { data } = await supabase
+
+    const { data, error } = await supabase
       .from("payments")
-      .select(
-        `
-        *,
-        bookings (
-          id, booking_option, mat_reservation, status, user_id,
-          sessions ( date_time, events ( title, location ) )
-        )
-      `,
-      )
+      .select("*")
       .order("created_at", { ascending: false });
 
-    if (data) setPayments(data);
+    console.log("payments data:", data);
+    console.log("payments error:", error);
+
+    if (!data) {
+      setLoading(false);
+      return;
+    }
+
+    const bookingIds = data.map((p) => p.booking_id).filter(Boolean);
+    const { data: bookings, error: bookingError } = await supabase
+      .from("bookings")
+      .select("*, sessions(id, date_time, event_id, events(title, location))")
+      .in("id", bookingIds);
+
+    const userIds = [
+      ...new Set(bookings?.map((b) => b.user_id).filter(Boolean)),
+    ];
+    console.log("userIds:", userIds); // ← tambah ini
+
+    const { data: profiles, error: profileError } = await supabase
+      .from("profiles")
+      .select("id, full_name, phone")
+      .in("id", userIds as string[]);
+
+    const merged = data.map((p) => {
+      const booking = bookings?.find((b) => b.id === p.booking_id) ?? null;
+      const profile =
+        profiles?.find((pr) => pr.id === booking?.user_id) ?? null;
+      return { ...p, bookings: booking, profile };
+    });
+
+    setPayments(merged);
     setLoading(false);
   };
 
@@ -49,15 +73,61 @@ export default function AdminPaymentsPage() {
 
     await supabase
       .from("payments")
-      .update({ status: newStatus })
+      .update({
+        status: newStatus,
+        verified_by: (await supabase.auth.getUser()).data.user?.id,
+        verified_at: new Date().toISOString(),
+      })
       .eq("id", payment.id);
+
     await supabase
       .from("bookings")
       .update({ status: bookingStatus })
-      .eq("id", payment.booking_id);
+      .eq("id", payment.bookings?.id);
+
+    if (approve) {
+      const sessionId = payment.bookings?.sessions?.id;
+      const pax = payment.bookings?.booking_option === "bestie" ? 2 : 1;
+
+      console.log("booking_option:", payment.bookings?.booking_option);
+      console.log("pax:", pax);
+      console.log("sessionId:", sessionId);
+
+      if (sessionId) {
+        const { data: sessionData } = await supabase
+          .from("sessions")
+          .select("booked_slots, event_id")
+          .eq("id", sessionId)
+          .single();
+
+        const current = sessionData?.booked_slots ?? 0;
+
+        // Update booked_slots — hanya sekali
+        await supabase
+          .from("sessions")
+          .update({ booked_slots: current + pax })
+          .eq("id", sessionId);
+
+        // Insert stamp
+        const userId = payment.bookings?.user_id;
+        const eventId = sessionData?.event_id;
+
+        if (
+          userId &&
+          eventId &&
+          userId !== "00000000-0000-0000-0000-000000000000"
+        ) {
+          await supabase.from("stamps").insert({
+            user_id: userId,
+            event_id: eventId,
+            booking_id: payment.bookings?.id,
+          });
+        }
+      }
+    }
 
     setProcessing(null);
-    await fetchPayments(); // pastikan ada await di sini
+    await fetchPayments();
   };
 
   const getProofUrl = async (fileName: string) => {
@@ -153,8 +223,43 @@ export default function AdminPaymentsPage() {
                       marginTop: "2px",
                     }}
                   >
-                    {event?.location} · {payment.bookings?.booking_option} ·{" "}
+                    {event?.location} ·{" "}
+                    {payment.bookings?.sessions?.date_time
+                      ? new Date(
+                          payment.bookings.sessions.date_time,
+                        ).toLocaleDateString("id-ID", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })
+                      : "—"}{" "}
+                    · {payment.bookings?.booking_option ?? "—"} ·{" "}
                     {payment.bookings?.mat_reservation ? "Mat ✓" : "No mat"}
+                  </p>
+                  <p
+                    style={{
+                      fontSize: "12px",
+                      color: "var(--text-secondary)",
+                      marginTop: "4px",
+                    }}
+                  >
+                    👤{" "}
+                    {payment.profile?.full_name ??
+                      payment.bookings?.name ??
+                      "—"}
+                  </p>
+                  <p
+                    style={{ fontSize: "12px", color: "var(--text-secondary)" }}
+                  >
+                    📱{" "}
+                    {payment.profile?.phone ??
+                      payment.bookings?.whatsapp ??
+                      "—"}
+                  </p>
+                  <p
+                    style={{ fontSize: "12px", color: "var(--text-secondary)" }}
+                  >
+                    ✉️ {payment.bookings?.email ?? "—"}
                   </p>
                   <p
                     style={{
