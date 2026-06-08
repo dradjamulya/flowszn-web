@@ -6,6 +6,7 @@ import {
   ChevronRight,
   MapPin,
   BarChart2,
+  X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -88,8 +89,6 @@ export default function SchedulePage() {
         )
         .in("status", ["on_sale", "upcoming"]);
 
-      console.log("events:", data, "error:", error); // tambah ini
-
       if (!error && data) setEvents(data);
       setLoadingEvents(false);
     };
@@ -134,6 +133,10 @@ export default function SchedulePage() {
     setScrollProgress(val);
   };
 
+  const handleFindFlow = () => {
+    setShowModal(false);
+  };
+
   const Checkbox = ({
     checked,
     onClick,
@@ -171,22 +174,64 @@ export default function SchedulePage() {
   );
 
   const filteredEvents = events.filter((e) => {
-  // Filter search
-  const matchSearch =
-    search === "" ||
-    e.title?.toLowerCase().includes(search.toLowerCase()) ||
-    e.instructor_name?.toLowerCase().includes(search.toLowerCase());
+    const matchSearch =
+      search === "" ||
+      e.title?.toLowerCase().includes(search.toLowerCase()) ||
+      e.instructor_name?.toLowerCase().includes(search.toLowerCase());
 
-  // Filter bulan — skip kalau showAll dicentang
-  const session = e.sessions?.[0];
-  const matchMonth = showAll
-    ? true
-    : session?.date_time
-      ? new Date(session.date_time).getMonth() === monthIndex
-      : false;
+    const session = e.sessions?.[0];
+    const matchMonth = showAll
+      ? true
+      : session?.date_time
+        ? new Date(session.date_time).getMonth() === monthIndex
+        : false;
 
-  return matchSearch && matchMonth;
-});
+    // Filter WHO — berdasarkan jam sesi
+    const hour = session?.date_time
+      ? new Date(session.date_time).getHours()
+      : null;
+    const matchWho =
+      !selected.who ||
+      (selected.who === "Morning sesh hunter" && hour !== null && hour < 12) ||
+      (selected.who === "Evening relief enthusiast" &&
+        hour !== null &&
+        hour >= 16) ||
+      selected.who === "Both morning and evening sesh lover";
+
+    // Filter ENJOY — berdasarkan lokasi
+    const loc = e.location?.toLowerCase() ?? "";
+    const matchEnjoy =
+      !selected.enjoy ||
+      (selected.enjoy === "A neat indoor flow" &&
+        (loc.includes("studio") ||
+          loc.includes("indoor") ||
+          loc.includes("gym") ||
+          loc.includes("mall"))) ||
+      (selected.enjoy === "A fresh outdoor flow" &&
+        (loc.includes("taman") ||
+          loc.includes("park") ||
+          loc.includes("outdoor") ||
+          loc.includes("pantai") ||
+          loc.includes("lapangan"))) ||
+      selected.enjoy === "Any fun place to do my flow";
+
+    // Filter GOAL — berdasarkan hari sesi
+    const day = session?.date_time
+      ? new Date(session.date_time).getDay()
+      : null;
+    const isWeekend = day === 0 || day === 6;
+    const matchGoal =
+      !selected.goal ||
+      (selected.goal === "Unwind after a long weekday shift" &&
+        day !== null &&
+        !isWeekend) ||
+      (selected.goal === "Make the most out of my weekend" &&
+        day !== null &&
+        isWeekend) ||
+      selected.goal === "Embrace my day whenever I can";
+
+    return matchSearch && matchMonth && matchWho && matchEnjoy && matchGoal;
+  });
 
   return (
     <main
@@ -218,8 +263,31 @@ export default function SchedulePage() {
               margin: "auto",
               maxHeight: "90vh",
               overflowY: "auto",
+              position: "relative", // ← tambah ini
             }}
           >
+            {/* Tombol X */}
+            <button
+              onClick={() => setShowModal(false)}
+              style={{
+                position: "absolute",
+                top: "16px",
+                right: "16px",
+                width: "32px",
+                height: "32px",
+                borderRadius: "999px",
+                border: "1.5px solid var(--border)",
+                background: "transparent",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--text-secondary)",
+              }}
+            >
+              <X size={16} />
+            </button>
+
             <p
               style={{
                 fontSize: "14px",
@@ -301,7 +369,7 @@ export default function SchedulePage() {
             </div>
 
             <button
-              onClick={() => setShowModal(false)}
+              onClick={handleFindFlow}
               style={{
                 width: "100%",
                 padding: "13px",

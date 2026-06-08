@@ -130,12 +130,6 @@ export default function AdminEventsPage() {
 
     setSaving(true);
 
-    // Debug log — PERTAMA sebelum apapun
-    console.log("=== handleSave dipanggil ===");
-    console.log("session_date:", form.session_date);
-    console.log("session_time:", form.session_time);
-    console.log("selectedEvent:", selectedEvent?.id);
-
     let thumbnailUrl = form.thumbnail_url;
 
     if (thumbnailFile) {
@@ -184,38 +178,26 @@ export default function AdminEventsPage() {
         .from("events")
         .update(payload)
         .eq("id", selectedEvent.id);
-      console.log("update event error:", updateError);
     } else {
       const { data: newEvent, error: insertError } = await supabase
         .from("events")
         .insert(payload)
         .select()
         .single();
-      console.log("insert event:", newEvent?.id, "error:", insertError);
       eventId = newEvent?.id;
     }
-
-    console.log("eventId setelah upsert event:", eventId);
 
     // Insert/update session
     if (eventId && form.session_date && form.session_time) {
       const dateTime = new Date(
         `${form.session_date}T${form.session_time}:00`,
       ).toISOString();
-      console.log("dateTime yang akan disimpan:", dateTime);
 
       const { data: existingSessions, error: fetchErr } = await supabase
         .from("sessions")
         .select("id")
         .eq("event_id", eventId)
         .limit(1);
-
-      console.log(
-        "existing sessions:",
-        existingSessions,
-        "fetchErr:",
-        fetchErr,
-      );
 
       if (existingSessions && existingSessions.length > 0) {
         const { error: updateSessionErr } = await supabase
@@ -226,7 +208,6 @@ export default function AdminEventsPage() {
             total_slots: Number(form.session_total_slots) || 0,
           })
           .eq("id", existingSessions[0].id);
-        console.log("update session error:", updateSessionErr);
       } else {
         const { error: insertSessionErr } = await supabase
           .from("sessions")
@@ -237,7 +218,6 @@ export default function AdminEventsPage() {
             total_slots: Number(form.session_total_slots) || 0,
             booked_slots: 0,
           });
-        console.log("insert session error:", insertSessionErr);
       }
     } else {
       console.log("SKIP session — kondisi tidak terpenuhi:", {

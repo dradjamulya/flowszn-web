@@ -16,8 +16,6 @@ export async function submitBooking({
   payment_proof: File;
 }) {
 
-  console.log("RESEND KEY:", process.env.RESEND_API_KEY);
-
   const supabase = await createClient();
 
   // 1. Upload bukti pembayaran
