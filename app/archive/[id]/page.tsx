@@ -1,7 +1,7 @@
 import BackButton from "@/components/layout/BackButton";
-import { ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
+import TestimonialCarousel from "@/components/archive/TestimonialCarousel";
 
 // ✅ Ganti jadi
 export default async function ArchiveDetailPage({
@@ -46,11 +46,9 @@ export default async function ArchiveDetailPage({
   // Fetch satu testimoni untuk event ini
   const { data: testimonials } = await supabase
     .from("testimonials")
-    .select("review_text, avatar_url")
-    .eq("event_id", id)
-    .limit(1);
+    .select("review_text, avatar_url, name")
+    .eq("event_id", id);
 
-  const testimonial = testimonials?.[0] ?? null;
   const images = galleryImages?.map((g) => g.photo_url) ?? [];
   const participants = participantCount ?? 0;
 
@@ -92,119 +90,10 @@ export default async function ArchiveDetailPage({
           </p>
         </header>
 
-        <section
-          className="archive-info-bar"
-          style={{
-            width: "100%",
-            minHeight: "96px",
-            background: "#464642",
-            border: "12px solid #7A7770",
-            borderRadius: "16px",
-            display: "grid",
-            gridTemplateColumns: "280px 1fr 64px",
-            overflow: "hidden",
-            marginBottom: "34px",
-          }}
-        >
-          <div
-            style={{
-              padding: "20px 28px",
-              display: "flex",
-              alignItems: "center",
-              gap: "14px",
-              borderRight: "12px solid #7A7770",
-              color: "#F3EEE5",
-            }}
-          >
-            <span
-              style={{
-                fontSize: "54px",
-                fontWeight: 700,
-                lineHeight: 1,
-                letterSpacing: "0.02em",
-              }}
-            >
-              {participants}
-            </span>
-            <span style={{ fontSize: "15px", color: "#E7E2DA" }}>
-              flowies <i>participated</i>
-            </span>
-          </div>
-
-          <div
-            style={{
-              padding: "18px 28px",
-              display: "flex",
-              alignItems: "center",
-              gap: "18px",
-              color: "#F3EEE5",
-            }}
-          >
-            {testimonial ? (
-              <>
-                {testimonial.avatar_url ? (
-                  <img
-                    src={testimonial.avatar_url}
-                    alt="Flowies testimonial"
-                    style={{
-                      width: "62px",
-                      height: "62px",
-                      borderRadius: "999px",
-                      objectFit: "cover",
-                      flexShrink: 0,
-                    }}
-                  />
-                ) : (
-                  <div
-                    style={{
-                      width: "62px",
-                      height: "62px",
-                      borderRadius: "999px",
-                      background: "#6B6860",
-                      flexShrink: 0,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: "24px",
-                    }}
-                  >
-                    🌸
-                  </div>
-                )}
-                <p
-                  style={{
-                    fontSize: "16px",
-                    lineHeight: 1.6,
-                    color: "#F3EEE5",
-                  }}
-                >
-                  {testimonial.review_text}
-                </p>
-              </>
-            ) : (
-              <p
-                style={{
-                  fontSize: "16px",
-                  color: "#9A9790",
-                  fontStyle: "italic",
-                }}
-              >
-                Belum ada testimoni untuk event ini.
-              </p>
-            )}
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#F3EEE5",
-            }}
-          >
-            <ArrowRight size={28} />
-          </div>
-        </section>
+        <TestimonialCarousel
+          testimonials={testimonials ?? []}
+          participants={participants}
+        />
 
         {/* Gallery — tampil hanya kalau ada foto */}
         {images.length > 0 && (

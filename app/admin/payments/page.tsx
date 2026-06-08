@@ -27,9 +27,6 @@ export default function AdminPaymentsPage() {
       .select("*")
       .order("created_at", { ascending: false });
 
-    console.log("payments data:", data);
-    console.log("payments error:", error);
-
     if (!data) {
       setLoading(false);
       return;
@@ -44,7 +41,6 @@ export default function AdminPaymentsPage() {
     const userIds = [
       ...new Set(bookings?.map((b) => b.user_id).filter(Boolean)),
     ];
-    console.log("userIds:", userIds); // ← tambah ini
 
     const { data: profiles, error: profileError } = await supabase
       .from("profiles")
@@ -88,10 +84,6 @@ export default function AdminPaymentsPage() {
     if (approve) {
       const sessionId = payment.bookings?.sessions?.id;
       const pax = payment.bookings?.booking_option === "bestie" ? 2 : 1;
-
-      console.log("booking_option:", payment.bookings?.booking_option);
-      console.log("pax:", pax);
-      console.log("sessionId:", sessionId);
 
       if (sessionId) {
         const { data: sessionData } = await supabase
