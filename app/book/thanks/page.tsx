@@ -25,6 +25,7 @@ export default function ThanksPage() {
           justifyContent: "center",
           textAlign: "center",
           padding: "40px 32px",
+          marginTop: "-40px",
         }}
       >
         <h1

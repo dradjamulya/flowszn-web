@@ -180,7 +180,7 @@ export default function BookPage({
         style={{
           minHeight: "100vh",
           background: "#F0EDE5",
-          padding: "130px 32px 40px",
+          padding: "80px 32px 40px",
           textAlign: "center",
         }}
       >
@@ -197,7 +197,7 @@ export default function BookPage({
         style={{
           minHeight: "100vh",
           background: "#F0EDE5",
-          padding: "130px 32px 40px",
+          padding: "80px 32px 40px",
           textAlign: "center",
         }}
       >
@@ -213,7 +213,7 @@ export default function BookPage({
       style={{
         minHeight: "100vh",
         background: "#F0EDE5",
-        padding: "130px 0 40px",
+        padding: "80px 0 40px",
       }}
     >
       <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "0 32px" }}>

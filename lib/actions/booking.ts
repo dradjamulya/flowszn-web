@@ -58,26 +58,33 @@ export async function submitBooking({
 
   if (paymentError) return { success: false, error: paymentError.message };
 
-  // 4. Kirim email notifikasi ke admin
-  await resend.emails.send({
-    from: "onboarding@resend.dev",
-    to: "raadjaa26@gmail.com",
-    subject: `📋 Booking Baru — ${name}`,
-    html: `
-      <div style="font-family: sans-serif; max-width: 480px;">
-        <h2 style="color: #1E1E1A;">Ada booking baru masuk!</h2>
-        <table style="width:100%; border-collapse: collapse; font-size: 14px;">
-          <tr><td style="padding: 8px 0; color: #777;">Nama</td><td style="font-weight:600;">${name}</td></tr>
-          <tr><td style="padding: 8px 0; color: #777;">Email</td><td>${email}</td></tr>
-          <tr><td style="padding: 8px 0; color: #777;">WhatsApp</td><td>${whatsapp}</td></tr>
-          <tr><td style="padding: 8px 0; color: #777;">Opsi</td><td>${booking_option === "bestie" ? "Bestie Deals (2 Pax)" : "Personal (1 Pax)"}</td></tr>
-          <tr><td style="padding: 8px 0; color: #777;">Mat Reservation</td><td>${mat_reservation ? "Ya" : "Tidak"}</td></tr>
-          <tr><td style="padding: 8px 0; color: #777;">Session ID</td><td style="font-size:12px; color:#999;">${session_id}</td></tr>
-        </table>
-        <a href="${publicUrl}" style="display:inline-block; margin-top:16px; padding: 10px 20px; background:#1E1E1A; color:white; border-radius:8px; text-decoration:none; font-size:13px;">
-          Lihat Bukti Pembayaran
-        </a>
-      </div>
+  // 4. Generate signed URL untuk email (valid 7 hari)
+const { data: signedData } = await supabase.storage
+  .from("payment-proofs")
+  .createSignedUrl(fileName, 60 * 60 * 24 * 7); // 7 hari
+
+const proofLinkForEmail = signedData?.signedUrl ?? publicUrl;
+
+// 5. Kirim email notifikasi ke admin
+await resend.emails.send({
+  from: "onboarding@resend.dev",
+  to: "raadjaa26@gmail.com",
+  subject: `📋 Booking Baru — ${name}`,
+  html: `
+    <div style="font-family: sans-serif; max-width: 480px;">
+      <h2 style="color: #1E1E1A;">Ada booking baru masuk!</h2>
+      <table style="width:100%; border-collapse: collapse; font-size: 14px;">
+        <tr><td style="padding: 8px 0; color: #777;">Nama</td><td style="font-weight:600;">${name}</td></tr>
+        <tr><td style="padding: 8px 0; color: #777;">Email</td><td>${email}</td></tr>
+        <tr><td style="padding: 8px 0; color: #777;">WhatsApp</td><td>${whatsapp}</td></tr>
+        <tr><td style="padding: 8px 0; color: #777;">Opsi</td><td>${booking_option === "bestie" ? "Bestie Deals (2 Pax)" : "Personal (1 Pax)"}</td></tr>
+        <tr><td style="padding: 8px 0; color: #777;">Mat Reservation</td><td>${mat_reservation ? "Ya" : "Tidak"}</td></tr>
+      </table>
+      <a href="${proofLinkForEmail}" style="display:inline-block; margin-top:16px; padding: 10px 20px; background:#1E1E1A; color:white; border-radius:8px; text-decoration:none; font-size:13px;">
+        Lihat Bukti Pembayaran
+      </a>
+      <p style="font-size:11px; color:#999; margin-top:8px;">Link berlaku 7 hari.</p>
+    </div>
     `,
   });
 
