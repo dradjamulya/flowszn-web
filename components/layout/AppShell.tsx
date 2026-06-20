@@ -9,6 +9,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const hideNavbar =
     pathname.startsWith("/login") ||
     pathname.startsWith("/register") ||
+    pathname.startsWith("/forgot-password") ||
     pathname.startsWith("/admin") ||
     pathname.startsWith("/archive") ||
     pathname.startsWith("/detailarchive") ||
@@ -17,6 +18,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const hideFooter =
     pathname.startsWith("/login") ||
     pathname.startsWith("/register") ||
+    pathname.startsWith("/forgot-password") ||
     pathname.startsWith("/book") ||
     pathname.startsWith("/admin") ||
     pathname.startsWith("/archive") ||
